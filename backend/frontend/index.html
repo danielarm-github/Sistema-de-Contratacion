@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Contratación Docente</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+    <style>
+        /* ========== ESTILOS (mismos de antes) ========== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body, #app { height: 100%; width: 100%; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; overflow: hidden; }
+        .app-layout { display: flex; height: 100%; width: 100%; }
+        .sidebar { width: 280px; background: #1e2a3a; color: white; display: flex; flex-direction: column; flex-shrink: 0; box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 10; height: 100%; overflow-y: auto; }
+        .sidebar-header { padding: 25px 20px; border-bottom: 1px solid #2c3e50; margin-bottom: 20px; }
+        .sidebar-header h2 { font-size: 1.4rem; font-weight: 600; }
+        .sidebar-header p { font-size: 0.8rem; color: #8aa4b8; margin-top: 5px; }
+        .nav-item { padding: 12px 20px; margin: 5px 10px; border-radius: 8px; cursor: pointer; transition: 0.2s; font-weight: 500; display: flex; align-items: center; gap: 12px; }
+        .nav-item:hover { background: #2c3e50; }
+        .nav-item.active { background: #0f6b8c; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .sidebar-divider { height: 1px; background: #2c3e50; margin: 15px 10px; }
+        .main-content { flex: 1; overflow-y: auto; padding: 25px 30px; background: #f4f7fc; height: 100%; }
+        .card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 25px; margin-bottom: 25px; }
+        .card h2 { margin-bottom: 20px; color: #1e2a3a; border-left: 5px solid #0f6b8c; padding-left: 15px; }
+        .admin-options { display: flex; gap: 20px; flex-wrap: wrap; }
+        .admin-card { background: #f8f9fa; border-radius: 10px; padding: 20px; width: 250px; text-align: center; cursor: pointer; transition: 0.2s; border: 1px solid #ddd; }
+        .admin-card:hover { background: #e9ecef; transform: translateY(-2px); }
+        .lista-container { max-height: 500px; overflow-y: auto; }
+        .item-lista { background: #f9f9f9; border-left: 4px solid #0f6b8c; margin-bottom: 12px; padding: 12px 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+        .item-info { flex: 1; margin-right: 10px; }
+        .item-info p { margin: 4px 0; font-size: 0.9rem; }
+        .item-actions { display: flex; gap: 8px; margin-top: 5px; }
+        .btn-detalle { background: #17a2b8; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+        .btn-editar { background: #ffc107; color: #1e2a3a; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+        .btn-eliminar { background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+        .btn-pdf { background: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+        .btn-aprobar { background: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+        button { background: #0f6b8c; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; margin-top: 10px; margin-right: 10px; }
+        button:hover { background: #0a4c64; }
+        .btn-secondary { background: #6c757d; }
+        .btn-secondary:hover { background: #565e64; }
+        input, select, textarea { width: 100%; padding: 10px; margin: 8px 0 15px 0; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+        .form-row { display: flex; gap: 20px; flex-wrap: wrap; }
+        .form-group { flex: 1; min-width: 200px; }
+        .radio-group { display: flex; flex-wrap: wrap; gap: 15px; margin: 10px 0; align-items: center; }
+        .radio-group label { font-weight: normal; margin-left: 5px; }
+        .buscador { margin-bottom: 20px; padding: 10px; width: 100%; max-width: 400px; border: 1px solid #ccc; border-radius: 6px; }
+        .wizard-buttons { display: flex; justify-content: space-between; margin-top: 30px; }
+        .step-indicator { display: flex; justify-content: space-between; margin-bottom: 30px; border-bottom: 2px solid #e0e0e0; padding-bottom: 15px; }
+        .step { flex: 1; text-align: center; font-weight: bold; color: #aaa; position: relative; }
+        .step.active { color: #0f6b8c; }
+        .step.completed { color: #28a745; }
+        .resumen-item { margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px; }
+        .detalle-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .detalle-item { background: #f8f9fa; padding: 10px; border-radius: 6px; }
+        .detalle-item strong { display: block; color: #0f6b8c; }
+        .fuente-linea { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; margin: 10px 0; }
+        .fuente-linea label { font-weight: normal; }
+        .error { color: #dc3545; padding: 10px; }
+        .login-container { display: flex; justify-content: center; align-items: center; height: 100%; width: 100%; background: #f0f2f5; }
+        .login-card { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 400px; max-width: 90%; }
+        .login-card h2 { text-align: center; margin-bottom: 25px; color: #1e2a3a; }
+        .login-card input { margin-bottom: 20px; }
+        .logout-btn { margin-top: auto; margin-bottom: 20px; background: #dc3545; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; width: calc(100% - 40px); margin-left: 20px; }
+        .logout-btn:hover { background: #c82333; }
+    </style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+    const API_BASE = 'http://localhost:3000';
+    let token = localStorage.getItem('token');
+    let currentView = 'dashboard';
+    let wizardData = { profesor: {}, solicitud: {}, contrato: {} };
+    let currentStep = 1;
+    let departamentos = [];
+    let profesoresList = [];
+    let solicitudesList = [];
+    let contratosList = [];
+    let adminSubview = 'departamentos';
+
+    function formatearFecha(fechaIso) {
+        if (!fechaIso) return 'N/A';
+        if (fechaIso.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            const partes = fechaIso.split('-');
+            return `${partes[2]}/${partes[1]}/${partes[0]}`;
+        }
+        const partes = fechaIso.split('T');
+        if (partes.length > 0 && partes[0].match(/^\d{4}-\d{2}-\d{2}$/)) {
+            const ymd = partes[0].split('-');
+            return `${ymd[2]}/${ymd[1]}/${ymd[0]}`;
+        }
+        return fechaIso;
+    }
+
+    async function fetchAPI(url, method = 'GET', body = null) {
+        const opts = {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        };
+        if (body) opts.body = JSON.stringify(body);
+        const res = await fetch(`${API_BASE}${url}`, opts);
+        if (res.status === 401) {
+            localStorage.removeItem('token');
+            token = null;
+            renderApp();
+            throw new Error('Sesión expirada. Inicie sesión nuevamente.');
+        }
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({ mensaje: res.statusText }));
+            throw new Error(errData.mensaje || errData.error || 'Error en la petición');
+        }
+        return res.json();
+    }
+
+    async function login(email, password) {
+        const res = await fetch(`${API_BASE}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.mensaje || 'Error al iniciar sesión');
+        }
+        const data = await res.json();
+        localStorage.setItem('token', data.token);
+        token = data.token;
+        renderApp();
+    }
+
+    function logout() {
+        localStorage.removeItem('token');
+        token = null;
+        renderApp();
+    }
+
+    async function loadInitialData() {
+        try {
+            departamentos = await fetchAPI('/departamentos');
+            profesoresList = await fetchAPI('/profesores');
+            solicitudesList = await fetchAPI('/solicitudes');
+            contratosList = await fetchAPI('/contratos');
+        } catch (err) { console.error(err); }
+    }
+
+    // ========== APROBAR SOLICITUD ==========
+    async function aprobarSolicitud(id) {
+        if (!confirm('¿Aprobar esta solicitud? Luego podrá generar el contrato.')) return;
+        try {
+            await fetchAPI(`/solicitudes/aprobar/${id}`, 'PUT');
+            alert('Solicitud aprobada correctamente');
+            await loadSolicitudes();
+            if (currentView === 'solicitudes') renderSolicitudesView();
+        } catch (err) {
+            alert('Error al aprobar: ' + err.message);
+        }
+    }
+
+    // ========== DEPARTAMENTOS CRUD ==========
+    async function loadDepartamentos() { departamentos = await fetchAPI('/departamentos'); }
+    async function eliminarDepartamento(id) {
+        if (!confirm('¿Eliminar este departamento? Se perderá la referencia en profesores y solicitudes.')) return;
+        try {
+            await fetchAPI(`/departamentos/${id}`, 'DELETE');
+            alert('Departamento eliminado');
+            await loadDepartamentos();
+            if (currentView === 'admin' && adminSubview === 'departamentos') renderAdminDepartamentosView();
+            await loadInitialData();
+        } catch (err) { alert('Error: ' + err.message); }
+    }
+    async function editarDepartamento(id) {
+        const depto = departamentos.find(d => d.id_departamento == id);
+        if (!depto) return;
+        const nuevoNombre = prompt('Nuevo nombre del departamento:', depto.nombre);
+        if (nuevoNombre && nuevoNombre.trim()) {
+            try {
+                await fetchAPI(`/departamentos/${id}`, 'PUT', { nombre: nuevoNombre });
+                alert('Departamento actualizado');
+                await loadDepartamentos();
+                if (currentView === 'admin' && adminSubview === 'departamentos') renderAdminDepartamentosView();
+                await loadInitialData();
+            } catch (err) { alert('Error: ' + err.message); }
+        }
+    }
+    async function crearDepartamento() {
+        const nombre = prompt('Ingrese el nombre del nuevo departamento:');
+        if (nombre && nombre.trim()) {
+            try {
+                await fetchAPI('/departamentos', 'POST', { nombre: nombre.trim() });
+                alert('Departamento creado');
+                await loadDepartamentos();
+                if (currentView === 'admin' && adminSubview === 'departamentos') renderAdminDepartamentosView();
+                await loadInitialData();
+            } catch (err) { alert('Error: ' + err.message); }
+        }
+    }
+    async function renderAdminDepartamentosView() {
+        const main = document.getElementById('mainContent');
+        main.innerHTML = `
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h2>🏢 Gestión de Departamentos</h2>
+                    <button id="btnVolverAdmin" class="btn-secondary">← Volver a Administración</button>
+                </div>
+                <button id="btnNuevoDepto">+ Nuevo Departamento</button>
+                <div id="listaDeptosContainer" class="lista-container"></div>
+            </div>
+        `;
+        document.getElementById('btnNuevoDepto').addEventListener('click', crearDepartamento);
+        document.getElementById('btnVolverAdmin').addEventListener('click', () => renderAdminMainView());
+        const container = document.getElementById('listaDeptosContainer');
+        if (departamentos.length === 0) container.innerHTML = '<p>No hay departamentos registrados.</p>';
+        else {
+            container.innerHTML = departamentos.map(d => `
+                <div class="item-lista">
+                    <div class="item-info"><strong>${d.nombre}</strong> (ID: ${d.id_departamento})</div>
+                    <div class="item-actions">
+                        <button class="btn-editar" data-id="${d.id_departamento}">✏️ Editar</button>
+                        <button class="btn-eliminar" data-id="${d.id_departamento}">🗑️ Eliminar</button>
+                    </div>
+                </div>
+            `).join('');
+            document.querySelectorAll('.btn-editar').forEach(btn => btn.addEventListener('click', (e) => editarDepartamento(btn.dataset.id)));
+            document.querySelectorAll('.btn-eliminar').forEach(btn => btn.addEventListener('click', (e) => eliminarDepartamento(btn.dataset.id)));
+        }
+    }
+    async function renderAdminUsuariosView() {
+        await loadUsuarios();
+        const main = document.getElementById('mainContent');
+        main.innerHTML = `
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h2>👥 Gestión de Usuarios</h2>
+                    <button id="btnVolverAdminUsuarios" class="btn-secondary">← Volver a Administración</button>
+                </div>
+                <button id="btnNuevoUsuario">+ Nuevo Usuario</button>
+                <div id="listaUsuariosContainer" class="lista-container"></div>
+            </div>
+        `;
+        document.getElementById('btnNuevoUsuario').addEventListener('click', crearUsuario);
+        document.getElementById('btnVolverAdminUsuarios').addEventListener('click', () => renderAdminMainView());
+        const container = document.getElementById('listaUsuariosContainer');
+        if (usuariosList.length === 0) container.innerHTML = '<p>No hay usuarios registrados.</p>';
+        else {
+            container.innerHTML = usuariosList.map(u => `
+                <div class="item-lista">
+                    <div class="item-info">
+                        <strong>${u.nombre}</strong> (${u.email})<br>
+                        ID: ${u.id_usuario}
+                    </div>
+                    <div class="item-actions">
+                        <button class="btn-editar" data-id="${u.id_usuario}">✏️ Editar</button>
+                        <button class="btn-eliminar" data-id="${u.id_usuario}">🗑️ Eliminar</button>
+                    </div>
+                </div>
+            `).join('');
+            document.querySelectorAll('.btn-editar').forEach(btn => btn.addEventListener('click', (e) => editarUsuario(btn.dataset.id)));
+            document.querySelectorAll('.btn-eliminar').forEach(btn => btn.addEventListener('click', (e) => eliminarUsuario(btn.dataset.id)));
+        }
+    }
+    async function renderAdminMainView() {
+        const main = document.getElementById('mainContent');
+        main.innerHTML = `
+            <div class="card">
+                <h2>⚙️ Administración del Sistema</h2>
+                <div class="admin-options">
+                    <div class="admin-card" id="adminDeptos"><h3>🏢 Departamentos</h3><p>Crear, editar y eliminar departamentos.</p></div>
+                    <div class="admin-card" id="adminUsuarios"><h3>👥 Usuarios</h3><p>Gestión de usuarios (CRUD completo).</p></div>
+                </div>
+            </div>
+        `;
+        document.getElementById('adminDeptos').addEventListener('click', () => { adminSubview = 'departamentos'; renderAdminDepartamentosView(); });
+        document.getElementById('adminUsuarios').addEventListener('click', () => { adminSubview = 'usuarios'; renderAdminUsuariosView(); });
+    }
+
+    // ========== USUARIOS ==========
+    let usuariosList = [];
+    async function loadUsuarios() { usuariosList = await fetchAPI('/usuarios'); }
+    async function eliminarUsuario(id) {
+        if (!confirm('¿Eliminar este usuario?')) return;
+        try {
+            await fetchAPI(`/usuarios/${id}`, 'DELETE');
+            alert('Usuario eliminado');
+            await loadUsuarios();
+            renderAdminUsuariosView();
+        } catch (err) { alert('Error: ' + err.message); }
+    }
+    async function editarUsuario(id) {
+        const usuario = usuariosList.find(u => u.id_usuario == id);
+        if (!usuario) return;
+        const nuevoNombre = prompt('Nuevo nombre:', usuario.nombre);
+        const nuevoEmail = prompt('Nuevo email:', usuario.email);
+        let nuevaPassword = prompt('Nueva contraseña (dejar vacío para no cambiar):', '');
+        if (nuevoNombre && nuevoEmail) {
+            const payload = { nombre: nuevoNombre, email: nuevoEmail };
+            if (nuevaPassword && nuevaPassword.trim() !== '') payload.password = nuevaPassword;
+            try {
+                await fetchAPI(`/usuarios/${id}`, 'PUT', payload);
+                alert('Usuario actualizado');
+                await loadUsuarios();
+                renderAdminUsuariosView();
+            } catch (err) { alert('Error: ' + err.message); }
+        }
+    }
+    async function crearUsuario() {
+        const nombre = prompt('Ingrese el nombre completo:');
+        if (!nombre) return;
+        const email = prompt('Ingrese el correo electrónico:');
+        if (!email) return;
+        const password = prompt('Ingrese la contraseña:');
+        if (!password) return;
+        try {
+            await fetchAPI('/usuarios', 'POST', { nombre, email, password });
+            alert('Usuario creado');
+            await loadUsuarios();
+            renderAdminUsuariosView();
+        } catch (err) { alert('Error: ' + err.message); }
+    }
+
+    // ========== PROFESORES ==========
+    let profesoresFiltrados = [];
+    function filtrarProfesores() {
+        const texto = document.getElementById('buscadorProfesores')?.value.toLowerCase() || '';
+        if (!texto) profesoresFiltrados = [...profesoresList];
+        else {
+            profesoresFiltrados = profesoresList.filter(p => 
+                (p.nombre && p.nombre.toLowerCase().includes(texto)) ||
+                (p.apellidos && p.apellidos.toLowerCase().includes(texto)) ||
+                (p.carnet_identidad && p.carnet_identidad.toLowerCase().includes(texto))
+            );
+        }
+        renderListaProfesoresFiltrada();
+    }
+    function renderListaProfesoresFiltrada() {
+        const container = document.getElementById('listaProfesoresContainer');
+        if (!container) return;
+        if (profesoresFiltrados.length === 0) { container.innerHTML = '<p>No hay profesores coincidentes.</p>'; return; }
+        container.innerHTML = profesoresFiltrados.map(p => `
+            <div class="item-lista">
+                <div class="item-info">
+                    <strong>${p.nombre} ${p.apellidos}</strong><br>
+                    CI: ${p.carnet_identidad || 'N/A'} | Tel: ${p.telefono || 'N/A'}<br>
+                    Categoría: ${p.categoria_docente || 'N/A'} | Depto: ${p.id_departamento || 'N/A'}<br>
+                    Dirección: ${p.direccion || ''} ${p.municipio ? `, ${p.municipio}` : ''} ${p.provincia ? `, ${p.provincia}` : ''}
+                </div>
+                <div class="item-actions">
+                    <button class="btn-editar" data-id="${p.id_profesor}">✏️ Editar</button>
+                    <button class="btn-eliminar" data-id="${p.id_profesor}">🗑️ Eliminar</button>
+                </div>
+            </div>
+        `).join('');
+        document.querySelectorAll('.btn-editar').forEach(btn => btn.addEventListener('click', (e) => editarProfesor(btn.dataset.id)));
+        document.querySelectorAll('.btn-eliminar').forEach(btn => btn.addEventListener('click', (e) => eliminarProfesor(btn.dataset.id)));
+    }
+    async function loadProfesores() {
+        profesoresList = await fetchAPI('/profesores');
+        profesoresFiltrados = [...profesoresList];
+        if (currentView === 'profesores') renderProfesoresView();
+    }
+    async function eliminarProfesor(id) {
+        if (!confirm('¿Eliminar este profesor? También se eliminarán sus solicitudes y contratos asociados.')) return;
+        try {
+            await fetchAPI(`/profesores/${id}`, 'DELETE');
+            alert('Profesor eliminado');
+            await loadProfesores();
+            if (currentView === 'profesores') renderProfesoresView();
+        } catch (err) {
+            // Mensaje amigable para error de clave foránea
+            if (err.message.includes('foreign key') || err.message.includes('referenced')) {
+                alert('No se puede eliminar el profesor porque tiene solicitudes o contratos asociados. Primero elimine esas dependencias.');
+            } else {
+                alert('Error: ' + err.message);
+            }
+        }
+    }
+    async function editarProfesor(id) {
+        const profesor = profesoresList.find(p => p.id_profesor == id);
+        if (!profesor) return;
+        const main = document.getElementById('mainContent');
+        const fuenteHtml = `
+            <div class="fuente-linea">
+                <label><strong>Centro de trabajo principal:</strong></label>
+                <input type="text" id="editCentroTexto" style="width: 300px;" placeholder="Escriba el centro" value="${profesor.fuente_procedencia && profesor.fuente_procedencia.startsWith('Centro de trabajo principal:') ? profesor.fuente_procedencia.replace('Centro de trabajo principal:', '').trim() : ''}">
+            </div>
+            <div class="radio-group">
+                <label><input type="radio" name="editFuenteRadio" value="Interrupto" ${profesor.fuente_procedencia === 'Interrupto' ? 'checked' : ''}> Interrupto</label>
+                <label><input type="radio" name="editFuenteRadio" value="Reserva laboral" ${profesor.fuente_procedencia === 'Reserva laboral' ? 'checked' : ''}> Reserva laboral</label>
+                <label><input type="radio" name="editFuenteRadio" value="Jubilado" ${profesor.fuente_procedencia === 'Jubilado' ? 'checked' : ''}> Jubilado</label>
+                <label><input type="radio" name="editFuenteRadio" value="Cuenta propia" ${profesor.fuente_procedencia === 'Cuenta propia' ? 'checked' : ''}> Cuenta propia</label>
+                <label><input type="radio" name="editFuenteRadio" value="Ama de casa" ${profesor.fuente_procedencia === 'Ama de casa' ? 'checked' : ''}> Ama de casa</label>
+                <label><input type="radio" name="editFuenteRadio" value="" ${!profesor.fuente_procedencia || (!profesor.fuente_procedencia.startsWith('Centro de trabajo principal:') && !['Interrupto','Reserva laboral','Jubilado','Cuenta propia','Ama de casa'].includes(profesor.fuente_procedencia)) ? 'checked' : ''}> Ninguna</label>
+            </div>
+        `;
+        main.innerHTML = `
+            <div class="card">
+                <h2>✏️ Editar Profesor</h2>
+                <form id="editProfesorForm">
+                    <div class="form-row"><div class="form-group"><label>Nombre *</label><input type="text" id="editNombre" value="${profesor.nombre || ''}" required></div>
+                    <div class="form-group"><label>Apellidos *</label><input type="text" id="editApellidos" value="${profesor.apellidos || ''}" required></div></div>
+                    <div class="form-row"><div class="form-group"><label>Carnet Identidad</label><input type="text" id="editCarnet" value="${profesor.carnet_identidad || ''}"></div>
+                    <div class="form-group"><label>Fecha nacimiento</label><input type="date" id="editFechaNac" value="${profesor.fecha_nacimiento || ''}"></div></div>
+                    <div class="form-row"><div class="form-group"><label>Sexo</label><select id="editSexo"><option value="">Seleccione</option><option value="M" ${profesor.sexo === 'M' ? 'selected' : ''}>Masculino</option><option value="F" ${profesor.sexo === 'F' ? 'selected' : ''}>Femenino</option></select></div>
+                    <div class="form-group"><label>Teléfono</label><input type="text" id="editTelefono" value="${profesor.telefono || ''}"></div></div>
+                    <div class="form-group"><label>Dirección (calle)</label><textarea id="editDireccion">${profesor.direccion || ''}</textarea></div>
+                    <div class="form-row"><div class="form-group"><label>Provincia</label><input type="text" id="editProvincia" value="${profesor.provincia || ''}"></div>
+                    <div class="form-group"><label>Municipio</label><input type="text" id="editMunicipio" value="${profesor.municipio || ''}"></div></div>
+                    <div class="form-row"><div class="form-group"><label>Email</label><input type="email" id="editEmail" value="${profesor.email || ''}"></div>
+                    <div class="form-group"><label>Especialidad</label><input type="text" id="editEspecialidad" value="${profesor.especialidad || ''}"></div></div>
+                    <div class="form-row"><div class="form-group"><label>Categoría Docente</label><input type="text" id="editCategoria" value="${profesor.categoria_docente || ''}"></div>
+                    <div class="form-group"><label>Grado Científico</label><input type="text" id="editGrado" value="${profesor.grado_cientifico || ''}"></div></div>
+                    <div class="form-row"><div class="form-group"><label>Graduado de carrera</label><input type="text" id="editGraduado" value="${profesor.graduado_carrera || ''}"></div>
+                    <div class="form-group"><label>Fuente de procedencia</label> ${fuenteHtml}</div></div>
+                    <div class="form-group"><label>Departamento del profesor</label>
+                        <select id="editDepartamento">${departamentos.map(d => `<option value="${d.id_departamento}" ${profesor.id_departamento == d.id_departamento ? 'selected' : ''}>${d.nombre}</option>`).join('')}</select>
+                    </div>
+                    <button type="submit">Guardar cambios</button>
+                    <button type="button" class="btn-secondary" id="cancelEditProfesor">Cancelar</button>
+                </form>
+            </div>
+        `;
+        document.getElementById('editProfesorForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            let fuente = null;
+            const centroTexto = document.getElementById('editCentroTexto')?.value.trim();
+            if (centroTexto) fuente = `Centro de trabajo principal: ${centroTexto}`;
+            else {
+                const radio = document.querySelector('input[name="editFuenteRadio"]:checked');
+                if (radio && radio.value) fuente = radio.value;
+            }
+            const payload = {
+                nombre: document.getElementById('editNombre').value,
+                apellidos: document.getElementById('editApellidos').value,
+                carnet_identidad: document.getElementById('editCarnet').value || null,
+                fecha_nacimiento: document.getElementById('editFechaNac').value || null,
+                sexo: document.getElementById('editSexo').value || null,
+                telefono: document.getElementById('editTelefono').value || null,
+                direccion: document.getElementById('editDireccion').value || null,
+                provincia: document.getElementById('editProvincia').value || null,
+                municipio: document.getElementById('editMunicipio').value || null,
+                email: document.getElementById('editEmail').value || null,
+                especialidad: document.getElementById('editEspecialidad').value || null,
+                categoria_docente: document.getElementById('editCategoria').value || null,
+                grado_cientifico: document.getElementById('editGrado').value || null,
+                graduado_carrera: document.getElementById('editGraduado').value || null,
+                fuente_procedencia: fuente,
+                id_departamento: parseInt(document.getElementById('editDepartamento').value)
+            };
+            try {
+                await fetchAPI(`/profesores/${id}`, 'PUT', payload);
+                alert('Profesor actualizado');
+                await loadProfesores();
+                renderView('profesores');
+            } catch (err) { alert('Error: ' + err.message); }
+        });
+        document.getElementById('cancelEditProfesor').addEventListener('click', () => renderView('profesores'));
+    }
+    async function renderProfesoresView() {
+        const main = document.getElementById('mainContent');
+        main.innerHTML = `
+            <div class="card">
+                <h2>👨‍🏫 Lista de Profesores</h2>
+                <button id="btnNuevoProfesor">+ Nuevo Profesor (Rápido)</button>
+                <input type="text" id="buscadorProfesores" class="buscador" placeholder="🔍 Buscar por nombre, apellidos o CI...">
+                <div id="listaProfesoresContainer" class="lista-container"></div>
+            </div>
+        `;
+        document.getElementById('btnNuevoProfesor').addEventListener('click', () => showSimpleProfesorForm());
+        document.getElementById('buscadorProfesores').addEventListener('input', filtrarProfesores);
+        renderListaProfesoresFiltrada();
+    }
+    async function showSimpleProfesorForm() {
+        const main = document.getElementById('mainContent');
+        main.innerHTML = `
+            <div class="card">
+                <h2>➕ Nuevo Profesor (Rápido)</h2>
+                <form id="simpleProfesorForm">
+                    <div class="form-row"><div class="form-group"><label>Nombre *</label><input type="text" id="profNombre" required></div>
+                    <div class="form-group"><label>Apellidos *</label><input type="text" id="profApellidos" required></div></div>
+                    <div class="form-row"><div class="form-group"><label>Carnet Identidad</label><input type="text" id="profCarnet"></div>
+                    <div class="form-group"><label>Teléfono</label><input type="text" id="profTelefono"></div></div>
+                    <div class="form-group"><label>Departamento del profesor</label>
+                        <select id="profDepartamento">${departamentos.map(d => `<option value="${d.id_departamento}">${d.nombre}</option>`).join('')}</select>
+                    </div>
+                    <button type="submit">Guardar Profesor</button>
+                    <button type="button" class="btn-secondary" id="cancelarSimple">Cancelar</button>
+                </form>
+            </div>
+        `;
+        document.getElementById('simpleProfesorForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                nombre: document.getElementById('profNombre').value,
+                apellidos: document.getElementById('profApellidos').value,
+                carnet_identidad: document.getElementById('profCarnet').value || null,
+                telefono: document.getElementById('profTelefono').value || null,
+                id_departamento: parseInt(document.getElementById('profDepartamento').value)
+            };
+            try {
+                await fetchAPI('/profesores', 'POST', payload);
+                alert('Profesor creado');
+                await loadProfesores();
+                renderView('profesores');
+            } catch (err) { alert('Error: ' + err.message); }
+        });
+        document.getElementById('cancelarSimple').addEventListener('click', () => renderView('profesores'));
+    }
+
+    // ========== SOLICITUDES ==========
+    async function loadSolicitudes() { solicitudesList = await fetchAPI('/solicitudes'); }
+    async function eliminarSolicitud(id) {
+        if (!confirm('¿Eliminar esta solicitud? Se eliminará el contrato asociado si existe.')) return;
+        try {
+            await fetchAPI(`/solicitudes/${id}`, 'DELETE');
+            alert('Solicitud eliminada');
+            await loadSolicitudes();
+            if (currentView === 'solicitudes') renderSolicitudesView();
+        } catch (err) { alert('Error: ' + err.message); }
+    }
+    async function editarSolicitud(id) {
+        const solicitud = solicitudesList.find(s => s.id_solicitud == id);
+        if (!solicitud) return;
+        const main = document.getElementById('mainContent');
+        main.innerHTML = `
+            <div class="card">
+                <h2>✏️ Editar Solicitud #${id}</h2>
+                <form id="editSolicitudForm">
+                    <div class="form-row"><div class="form-group"><label>Asignatura *</label><input type="text" id="editAsignatura" value="${solicitud.asignatura || ''}" required></div>
+                    <div class="form-group"><label>Carrera</label><input type="text" id="editCarrera" value="${solicitud.carrera || ''}"></div></div>
+                    <div class="form-row"><div class="form-group"><label>Horas semanales *</label><input type="number" id="editHoras" value="${solicitud.horas_semanales || ''}" required></div>
+                    <div class="form-group"><label>Centro de trabajo *</label><input type="text" id="editCentro" value="${solicitud.centro_trabajo || ''}" required></div></div>
+                    <div class="form-row"><div class="form-group"><label>Facultad</label><input type="text" id="editFacultad" value="${solicitud.facultad || ''}"></div>
+                    <div class="form-group"><label>Estado</label><select id="editEstado"><option value="pendiente" ${solicitud.estado === 'pendiente' ? 'selected' : ''}>Pendiente</option><option value="aprobada" ${solicitud.estado === 'aprobada' ? 'selected' : ''}>Aprobada</option><option value="rechazada" ${solicitud.estado === 'rechazada' ? 'selected' : ''}>Rechazada</option></select></div></div>
+                    <div class="form-row"><div class="form-group"><label>Fecha solicitud</label><input type="date" id="editFechaSol" value="${solicitud.fecha_solicitud || ''}"></div>
+                    <div class="form-group"><label>ID Profesor</label><input type="number" id="editIdProfesor" value="${solicitud.id_profesor || ''}" required></div></div>
+                    <div class="form-group"><label>Departamento solicitante</label>
+                        <select id="editIdDepartamento">${departamentos.map(d => `<option value="${d.id_departamento}" ${solicitud.id_departamento == d.id_departamento ? 'selected' : ''}>${d.nombre}</option>`).join('')}</select>
+                    </div>
+                    <button type="submit">Guardar cambios</button>
+                    <button type="button" class="btn-secondary" id="cancelEditSolicitud">Cancelar</button>
+                </form>
+            </div>
+        `;
+        document.getElementById('editSolicitudForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                asignatura: document.getElementById('editAsignatura').value,
+                carrera: document.getElementById('editCarrera').value,
+                horas_semanales: parseInt(document.getElementById('editHoras').value),
+                centro_trabajo: document.getElementById('editCentro').value,
+                facultad: document.getElementById('editFacultad').value,
+                estado: document.getElementById('editEstado').value,
+                fecha_solicitud: document.getElementById('editFechaSol').value || null,
+                id_profesor: parseInt(document.getElementById('editIdProfesor').value),
+                id_departamento: parseInt(document.getElementById('editIdDepartamento').value),
+                id_usuario: 2
+            };
+            try {
+                await fetchAPI(`/solicitudes/${id}`, 'PUT', payload);
+                alert('Solicitud actualizada');
+                await loadSolicitudes();
+                renderView('solicitudes');
+            } catch (err) { alert('Error: ' + err.message); }
+        });
+        document.getElementById('cancelEditSolicitud').addEventListener('click', () => renderView('solicitudes'));
+    }
+    async function generarContratoDesdeSolicitud(idSolicitud) {
+    const solicitud = solicitudesList.find(s => s.id_solicitud == idSolicitud);
+    if (!solicitud) return;
+    const main = document.getElementById('mainContent');
+    main.innerHTML = `
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2>📝 Generar Contrato para Solicitud #${idSolicitud}</h2>
+                <button id="btnVolverSolicitudes" class="btn-secondary">← Volver a Solicitudes</button>
+            </div>
+            <form id="formContratoDirecto">
+                <div class="form-group"><label>Asignatura</label><input type="text" value="${solicitud.asignatura}" disabled style="background:#e9ecef;"></div>
+                <div class="form-group"><label>Profesor</label><input type="text" value="${profesoresList.find(p => p.id_profesor == solicitud.id_profesor)?.nombre || ''} ${profesoresList.find(p => p.id_profesor == solicitud.id_profesor)?.apellidos || ''}" disabled style="background:#e9ecef;"></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Fecha inicio *</label><input type="date" id="fechaInicio" required></div>
+                    <div class="form-group"><label>Fecha fin *</label><input type="date" id="fechaFin" required></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Salario *</label><input type="number" step="0.01" id="salario" required></div>
+                    <div class="form-group"><label>Tipo de contrato</label><input type="text" id="tipoContrato" placeholder="Ej: Tiempo parcial"></div>
+                </div>
+                <button type="submit">Crear Contrato</button>
+                <button type="button" class="btn-secondary" id="cancelarContratoDirecto">Cancelar</button>
+            </form>
+        </div>
+    `;
+    document.getElementById('btnVolverSolicitudes').addEventListener('click', () => renderView('solicitudes'));
+    document.getElementById('formContratoDirecto').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const payload = {
+            id_solicitud: idSolicitud,
+            fecha_inicio: document.getElementById('fechaInicio').value,
+            fecha_fin: document.getElementById('fechaFin').value,
+            salario: parseFloat(document.getElementById('salario').value),
+            tipo_contrato: document.getElementById('tipoContrato').value
+        };
+        try {
+            await fetchAPI('/contratos', 'POST', payload);
+            alert('Contrato creado exitosamente');
+            await loadInitialData();
+            renderView('solicitudes');
+        } catch (err) {
+            alert('Error al crear contrato: ' + err.message);
+        }
+    });
+    document.getElementById('cancelarContratoDirecto').addEventListener('click', () => renderView('solicitudes'));
+}
+    async function verSolicitudDetalle(id) {
+        const solicitud = solicitudesList.find(s => s.id_solicitud == id);
+        if (!solicitud) return;
+        let profesor = null;
+        try {
+            profesor = await fetchAPI(`/profesores/${solicitud.id_profesor}`);
+        } catch (err) { profesor = null; }
+        const format = (val) => (val === null || val === '' ? 'N/A' : val);
+        const solicitudFields = [
+            { label: 'ID Solicitud', value: solicitud.id_solicitud },
+            { label: 'Asignatura', value: solicitud.asignatura },
+            { label: 'Carrera', value: solicitud.carrera },
+            { label: 'Horas semanales', value: solicitud.horas_semanales },
+            { label: 'Centro de trabajo', value: solicitud.centro_trabajo },
+            { label: 'Facultad', value: solicitud.facultad },
+            { label: 'Estado', value: solicitud.estado },
+            { label: 'Fecha solicitud', value: formatearFecha(solicitud.fecha_solicitud) },
+            { label: 'ID Profesor', value: solicitud.id_profesor },
+            { label: 'ID Departamento', value: solicitud.id_departamento },
+            { label: 'ID Usuario', value: solicitud.id_usuario }
+        ];
+        const profesorFields = profesor ? [
+            { label: 'ID Profesor', value: profesor.id_profesor },
+            { label: 'Nombre', value: profesor.nombre },
+            { label: 'Apellidos', value: profesor.apellidos },
+            { label: 'Carnet Identidad', value: profesor.carnet_identidad },
+            { label: 'Fecha nacimiento', value: formatearFecha(profesor.fecha_nacimiento) },
+            { label: 'Sexo', value: profesor.sexo === 'M' ? 'Masculino' : (profesor.sexo === 'F' ? 'Femenino' : 'N/A') },
+            { label: 'Teléfono', value: profesor.telefono },
+            { label: 'Dirección', value: profesor.direccion },
+            { label: 'Provincia', value: profesor.provincia },
+            { label: 'Municipio', value: profesor.municipio },
+            { label: 'Email', value: profesor.email },
+            { label: 'Especialidad', value: profesor.especialidad },
+            { label: 'Categoría Docente', value: profesor.categoria_docente },
+            { label: 'Grado Científico', value: profesor.grado_cientifico },
+            { label: 'Graduado de carrera', value: profesor.graduado_carrera },
+            { label: 'Fuente de procedencia', value: profesor.fuente_procedencia },
+            { label: 'ID Departamento', value: profesor.id_departamento }
+        ] : null;
+        const main = document.getElementById('mainContent');
+        main.innerHTML = `
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h2>📄 Detalle de Solicitud #${id}</h2>
+                    <button id="btnVolverSolicitudes" class="btn-secondary">← Volver a Solicitudes</button>
+                </div>
+                <h3>Datos de la Solicitud</h3>
+                <div class="detalle-grid">
+                    ${solicitudFields.map(f => `<div class="detalle-item"><strong>${f.label}</strong> ${format(f.value)}</div>`).join('')}
+                </div>
+                <h3>Datos del Profesor</h3>
+                ${profesor ? `
+                <div class="detalle-grid">
+                    ${profesorFields.map(f => `<div class="detalle-item"><strong>${f.label}</strong> ${format(f.value)}</div>`).join('')}
+                </div>
+                ` : '<p class="error">No se encontraron datos del profesor. Es posible que el profesor con ID ' + solicitud.id_profesor + ' no exista en la base de datos.</p>'}
+                <div style="margin-top: 20px;">
+                    <button class="btn-editar" id="editFromDetail" data-id="${solicitud.id_solicitud}">✏️ Editar Solicitud</button>
+                    <button class="btn-eliminar" id="deleteFromDetail" data-id="${solicitud.id_solicitud}">🗑️ Eliminar Solicitud</button>
+                </div>
+            </div>
+        `;
+        document.getElementById('btnVolverSolicitudes').addEventListener('click', () => renderView('solicitudes'));
+        document.getElementById('editFromDetail')?.addEventListener('click', () => editarSolicitud(solicitud.id_solicitud));
+        document.getElementById('deleteFromDetail')?.addEventListener('click', async () => { await eliminarSolicitud(solicitud.id_solicitud); renderView('solicitudes'); });
+    }
+    async function renderSolicitudesView() {
+    await loadProfesores();
+    const main = document.getElementById('mainContent');
+    main.innerHTML = `
+        <div class="card">
+            <h2>📄 Solicitudes de Contratación</h2>
+            <button id="btnNuevaSolicitudCompleta">🎯 Nueva Solicitud (Contratación completa)</button>
+            <div id="listaSolicitudesContainer" class="lista-container"></div>
+        </div>
+    `;
+    document.getElementById('btnNuevaSolicitudCompleta').addEventListener('click', () => startWizard());
+    const container = document.getElementById('listaSolicitudesContainer');
+    if (solicitudesList.length === 0) container.innerHTML = '<p>No hay solicitudes.</p>';
+    else {
+        container.innerHTML = solicitudesList.map(s => {
+            const profesor = profesoresList.find(p => p.id_profesor == s.id_profesor);
+            const profesorNombre = profesor ? `${profesor.nombre} ${profesor.apellidos}` : `ID: ${s.id_profesor}`;
+            const estado = s.estado || 'pendiente';
+            let botones = `
+                <button class="btn-detalle" data-id="${s.id_solicitud}">🔍 Ver detalles</button>
+                <button class="btn-editar" data-id="${s.id_solicitud}">✏️ Editar</button>
+            `;
+            if (estado === 'pendiente') {
+                botones += `<button class="btn-aprobar" data-id="${s.id_solicitud}">✅ Aprobar</button>`;
+            } else if (estado === 'aprobada') {
+                // Verificar si ya existe un contrato para esta solicitud
+                const tieneContrato = contratosList.some(c => c.id_solicitud == s.id_solicitud);
+                if (!tieneContrato) {
+                    botones += `<button class="btn-contrato" data-id="${s.id_solicitud}">📄 Generar Contrato</button>`;
+                } else {
+                    botones += `<span style="color:green; margin-left:10px;">✔ Contrato generado</span>`;
+                }
+            }
+            botones += `<button class="btn-eliminar" data-id="${s.id_solicitud}">🗑️ Eliminar</button>`;
+            return `
+                <div class="item-lista">
+                    <div class="item-info">
+                        <p><strong>📖 Asignatura:</strong> ${s.asignatura} | <strong>🎓 Carrera:</strong> ${s.carrera || 'N/A'} | <strong>📅 Fecha:</strong> ${formatearFecha(s.fecha_solicitud)}</p>
+                        <p><strong>👨‍🏫 Profesor:</strong> ${profesorNombre} | <strong>📌 Estado:</strong> <span style="font-weight:bold; color:${estado === 'aprobada' ? 'green' : (estado === 'rechazada' ? 'red' : 'orange')}">${estado}</span></p>
+                    </div>
+                    <div class="item-actions">
+                        ${botones}
+                    </div>
+                </div>
+            `;
+        }).join('');
+        document.querySelectorAll('.btn-detalle').forEach(btn => btn.addEventListener('click', (e) => verSolicitudDetalle(btn.dataset.id)));
+        document.querySelectorAll('.btn-editar').forEach(btn => btn.addEventListener('click', (e) => editarSolicitud(btn.dataset.id)));
+        document.querySelectorAll('.btn-aprobar').forEach(btn => btn.addEventListener('click', (e) => aprobarSolicitud(btn.dataset.id)));
+        document.querySelectorAll('.btn-contrato').forEach(btn => btn.addEventListener('click', (e) => generarContratoDesdeSolicitud(btn.dataset.id)));
+        document.querySelectorAll('.btn-eliminar').forEach(btn => btn.addEventListener('click', (e) => eliminarSolicitud(btn.dataset.id)));
+    }
+}
+
+    // ========== CONTRATOS ==========
+    let contratosFiltrados = [];
+    function filtrarContratos() {
+        const texto = document.getElementById('buscadorContratos')?.value.toLowerCase() || '';
+        if (!texto) contratosFiltrados = [...contratosList];
+        else {
+            contratosFiltrados = contratosList.filter(c => 
+                (c.id_contrato && c.id_contrato.toString().includes(texto)) ||
+                (c.id_solicitud && c.id_solicitud.toString().includes(texto)) ||
+                (c.tipo_contrato && c.tipo_contrato.toLowerCase().includes(texto))
+            );
+        }
+        renderListaContratosFiltrada();
+    }
+    function renderListaContratosFiltrada() {
+        const container = document.getElementById('listaContratosContainer');
+        if (!container) return;
+        if (contratosFiltrados.length === 0) { container.innerHTML = '<p>No hay contratos coincidentes.</p>'; return; }
+        container.innerHTML = contratosFiltrados.map(c => `
+            <div class="item-lista">
+                <div class="item-info">
+                    <strong>Contrato #${c.id_contrato}</strong><br>
+                    Fechas: ${formatearFecha(c.fecha_inicio)} - ${formatearFecha(c.fecha_fin)}<br>
+                    Salario: $${c.salario} | Tipo: ${c.tipo_contrato || 'No especificado'}<br>
+                    Solicitud ID: ${c.id_solicitud}
+                </div>
+                <div class="item-actions">
+                    <button class="btn-pdf" data-id="${c.id_contrato}">📄 Generar PDF</button>
+                    <button class="btn-editar" data-id="${c.id_contrato}">✏️ Editar</button>
+                    <button class="btn-eliminar" data-id="${c.id_contrato}">🗑️ Eliminar</button>
+                </div>
+            </div>
+        `).join('');
+        document.querySelectorAll('.btn-pdf').forEach(btn => btn.addEventListener('click', (e) => generarPDFContrato(btn.dataset.id)));
+        document.querySelectorAll('.btn-editar').forEach(btn => btn.addEventListener('click', (e) => editarContrato(btn.dataset.id)));
+        document.querySelectorAll('.btn-eliminar').forEach(btn => btn.addEventListener('click', (e) => eliminarContrato(btn.dataset.id)));
+    }
+    async function loadContratos() {
+        contratosList = await fetchAPI('/contratos');
+        contratosFiltrados = [...contratosList];
+        if (currentView === 'contratos') renderContratosView();
+    }
+    async function eliminarContrato(id) {
+        if (!confirm('¿Eliminar este contrato?')) return;
+        try {
+            await fetchAPI(`/contratos/${id}`, 'DELETE');
+            alert('Contrato eliminado');
+            await loadContratos();
+            if (currentView === 'contratos') renderContratosView();
+        } catch (err) { alert('Error: ' + err.message); }
+    }
+    async function editarContrato(id) {
+        const contrato = contratosList.find(c => c.id_contrato == id);
+        if (!contrato) return;
+        const main = document.getElementById('mainContent');
+        main.innerHTML = `
+            <div class="card">
+                <h2>✏️ Editar Contrato #${id}</h2>
+                <form id="editContratoForm">
+                    <div class="form-row">
+                        <div class="form-group"><label>Número de contrato (opcional)</label><input type="text" id="editNumero" value="${contrato.numero_contrato || ''}"></div>
+                        <div class="form-group"><label>Fecha inicio</label><input type="date" id="editFechaInicio" value="${contrato.fecha_inicio || ''}"></div>
+                        <div class="form-group"><label>Fecha fin</label><input type="date" id="editFechaFin" value="${contrato.fecha_fin || ''}"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Salario *</label><input type="number" step="0.01" id="editSalario" value="${contrato.salario || ''}" required></div>
+                        <div class="form-group"><label>Tipo de contrato</label><input type="text" id="editTipo" value="${contrato.tipo_contrato || ''}"></div>
+                    </div>
+                    <button type="submit">Guardar cambios</button>
+                    <button type="button" class="btn-secondary" id="cancelEditContrato">Cancelar</button>
+                </form>
+            </div>
+        `;
+        document.getElementById('editContratoForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                numero_contrato: document.getElementById('editNumero').value || null,
+                fecha_inicio: document.getElementById('editFechaInicio').value,
+                fecha_fin: document.getElementById('editFechaFin').value,
+                salario: parseFloat(document.getElementById('editSalario').value),
+                tipo_contrato: document.getElementById('editTipo').value
+            };
+            try {
+                await fetchAPI(`/contratos/${id}`, 'PUT', payload);
+                alert('Contrato actualizado');
+                await loadContratos();
+                renderView('contratos');
+            } catch (err) { alert('Error: ' + err.message); }
+        });
+        document.getElementById('cancelEditContrato').addEventListener('click', () => renderView('contratos'));
+    }
+    async function renderContratosView() {
+        const main = document.getElementById('mainContent');
+        main.innerHTML = `
+            <div class="card">
+                <h2>📑 Contratos Generados</h2>
+                <button id="btnNuevoContrato">+ Nuevo Contrato (Directo)</button>
+                <input type="text" id="buscadorContratos" class="buscador" placeholder="🔍 Buscar por ID de contrato, ID de solicitud o tipo...">
+                <div id="listaContratosContainer" class="lista-container"></div>
+            </div>
+        `;
+        document.getElementById('btnNuevoContrato').addEventListener('click', () => showSimpleContratoForm());
+        document.getElementById('buscadorContratos').addEventListener('input', filtrarContratos);
+        renderListaContratosFiltrada();
+    }
+    async function showSimpleContratoForm() {
+        // Solo mostrar solicitudes aprobadas
+        const solicitudes = await fetchAPI('/solicitudes');
+        const solicitudesAprobadas = solicitudes.filter(s => s.estado === 'aprobada');
+        const main = document.getElementById('mainContent');
+        main.innerHTML = `
+            <div class="card">
+                <h2>➕ Nuevo Contrato</h2>
+                <form id="simpleContratoForm">
+                    <div class="form-group"><label>Solicitud (solo aprobadas)</label>
+                        <select id="conSolicitud">
+                            ${solicitudesAprobadas.map(s => `<option value="${s.id_solicitud}">Solicitud #${s.id_solicitud} - ${s.asignatura}</option>`).join('')}
+                            ${solicitudesAprobadas.length === 0 ? '<option disabled>No hay solicitudes aprobadas</option>' : ''}
+                        </select>
+                    </div>
+                    <div class="form-row"><div class="form-group"><label>Fecha inicio</label><input type="date" id="conFechaInicio"></div>
+                    <div class="form-group"><label>Fecha fin</label><input type="date" id="conFechaFin"></div></div>
+                    <div class="form-group"><label>Salario *</label><input type="number" step="0.01" id="conSalario" required></div>
+                    <div class="form-group"><label>Tipo contrato</label><input type="text" id="conTipo" placeholder="Ej: Tiempo parcial"></div>
+                    <button type="submit">Crear Contrato</button>
+                    <button type="button" class="btn-secondary" id="cancelarContrato">Cancelar</button>
+                </form>
+            </div>
+        `;
+        document.getElementById('simpleContratoForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const idSolicitud = document.getElementById('conSolicitud').value;
+            if (!idSolicitud) return alert('No hay solicitudes aprobadas para crear un contrato');
+            const payload = {
+                id_solicitud: parseInt(idSolicitud),
+                fecha_inicio: document.getElementById('conFechaInicio').value,
+                fecha_fin: document.getElementById('conFechaFin').value,
+                salario: parseFloat(document.getElementById('conSalario').value),
+                tipo_contrato: document.getElementById('conTipo').value
+            };
+            try {
+                await fetchAPI('/contratos', 'POST', payload);
+                alert('Contrato creado');
+                await loadContratos();
+                renderContratosView();
+            } catch (err) { alert('Error: ' + err.message); }
+        });
+        document.getElementById('cancelarContrato').addEventListener('click', () => renderContratosView());
+    }
+
+    // ========== GENERAR PDF ==========
+    async function generarPDFContrato(idContrato) {
+        try {
+            const contrato = await fetchAPI(`/contratos/${idContrato}`);
+            const solicitud = await fetchAPI(`/solicitudes/${contrato.id_solicitud}`);
+            const profesor = await fetchAPI(`/profesores/${solicitud.id_profesor}`);
+            const fechaInicio = formatearFecha(contrato.fecha_inicio);
+            const fechaFin = formatearFecha(contrato.fecha_fin);
+            const fechaSolicitud = formatearFecha(solicitud.fecha_solicitud);
+            const fechaNacimiento = formatearFecha(profesor.fecha_nacimiento);
+            const docDefinition = {
+                content: [
+                    { text: 'Universidad de Matanzas (UMA)', style: 'header', alignment: 'center' },
+                    { text: 'CONTRATO DE TRABAJO POR TIEMPO DETERMINADO', style: 'title', alignment: 'center', margin: [0, 20, 0, 10] },
+                    { text: `Número de contrato: ${contrato.numero_contrato || contrato.id_contrato}`, alignment: 'right', margin: [0, 0, 0, 20] },
+                    { text: 'DE UNA PARTE:', style: 'subheader' },
+                    { text: 'La Universidad de Matanzas (UMA), representada por su Dirección de Recursos Humanos, en lo sucesivo "LA ADMINISTRACIÓN".', margin: [0, 0, 0, 10] },
+                    { text: 'Y DE OTRA PARTE:', style: 'subheader' },
+                    { text: `El/la profesor/a ${profesor.nombre || ''} ${profesor.apellidos || ''}, con carnet de identidad ${profesor.carnet_identidad || 'N/A'}, nacido el ${fechaNacimiento}, domiciliado en ${profesor.direccion || 'N/A'}, ${profesor.municipio || ''}, ${profesor.provincia || ''}.`, margin: [0, 0, 0, 10] },
+                    { text: 'CONVIENEN:', style: 'subheader' },
+                    { text: `PRIMERO: El trabajador prestará sus servicios como PROFESOR en la asignatura ${solicitud.asignatura || 'N/A'}, con una carga horaria de ${solicitud.horas_semanales || 0} horas semanales, en el centro de trabajo ${solicitud.centro_trabajo || 'N/A'}, departamento ${solicitud.id_departamento || 'N/A'}.`, margin: [0, 5, 0, 5] },
+                    { text: `SEGUNDO: La ADMINISTRACIÓN abonará al trabajador un salario de ${contrato.salario || 0} pesos mensuales, de acuerdo con las horas laboradas.`, margin: [0, 5, 0, 5] },
+                    { text: `TERCERO: El presente contrato tendrá una duración desde ${fechaInicio} hasta ${fechaFin}.`, margin: [0, 5, 0, 5] },
+                    { text: `Fecha de la solicitud: ${fechaSolicitud}`, margin: [0, 5, 0, 5] },
+                    { text: 'CUARTO: Las partes firman el presente contrato en señal de conformidad.', margin: [0, 5, 0, 20] },
+                    { text: '_________________________', alignment: 'center' },
+                    { text: 'Firma del profesor', alignment: 'center', margin: [0, 0, 0, 10] },
+                    { text: '_________________________', alignment: 'center' },
+                    { text: 'Firma de la Administración', alignment: 'center' }
+                ],
+                styles: {
+                    header: { fontSize: 16, bold: true },
+                    title: { fontSize: 14, bold: true },
+                    subheader: { fontSize: 12, bold: true, margin: [0, 10, 0, 5] }
+                }
+            };
+            pdfMake.createPdf(docDefinition).download(`contrato_${contrato.id_contrato}.pdf`);
+        } catch (error) {
+            console.error('Error generando PDF:', error);
+            alert('Error al generar el PDF: ' + error.message);
+        }
+    }
+
+    // ========== WIZARD (con selección de profesor existente) ==========
+    async function startWizard() {
+        await loadProfesores();
+        wizardData = { profesor: {}, solicitud: {}, contrato: {} };
+        currentStep = 1;
+        renderWizardStep();
+    }
+    function renderWizardStep() {
+        const main = document.getElementById('mainContent');
+        let html = `
+            <div class="card">
+                <div class="step-indicator">
+                    <div class="step ${currentStep === 1 ? 'active' : (currentStep > 1 ? 'completed' : '')}">1. Datos Personales</div>
+                    <div class="step ${currentStep === 2 ? 'active' : (currentStep > 2 ? 'completed' : '')}">2. Datos Solicitud</div>
+                    <div class="step ${currentStep === 3 ? 'active' : (currentStep > 3 ? 'completed' : '')}">3. Datos Contrato</div>
+                    <div class="step ${currentStep === 4 ? 'active' : ''}">4. Resumen y Envío</div>
+                </div>
+                <div id="wizardStepContent"></div>
+                <div class="wizard-buttons">
+                    ${currentStep > 1 ? '<button id="wizardPrev" class="btn-secondary">◀ Anterior</button>' : '<div></div>'}
+                    ${currentStep < 4 ? '<button id="wizardNext">Siguiente ▶</button>' : '<button id="wizardSubmit">✅ Enviar Contratación</button>'}
+                </div>
+            </div>
+        `;
+        main.innerHTML = html;
+        const stepContent = document.getElementById('wizardStepContent');
+        if (currentStep === 1) {
+            // Agregar desplegable para seleccionar profesor existente (rellena los campos)
+            const selectProfesor = `<div class="form-group"><label>Seleccionar profesor existente (opcional)</label>
+                <select id="selectProfesorExistente">
+                    <option value="">-- Seleccione un profesor --</option>
+                    ${profesoresList.map(p => `<option value="${p.id_profesor}">${p.nombre} ${p.apellidos} (CI: ${p.carnet_identidad || 'N/A'})</option>`).join('')}
+                </select>
+            </div>`;
+            stepContent.innerHTML = `
+                <h3>Datos Personales del Profesor</h3>
+                ${selectProfesor}
+                <div class="form-row"><div class="form-group"><label>Nombre *</label><input type="text" id="wNombre" value="${wizardData.profesor.nombre || ''}"></div>
+                <div class="form-group"><label>Apellidos *</label><input type="text" id="wApellidos" value="${wizardData.profesor.apellidos || ''}"></div></div>
+                <div class="form-row"><div class="form-group"><label>Carnet Identidad</label><input type="text" id="wCarnet" value="${wizardData.profesor.carnet_identidad || ''}"></div>
+                <div class="form-group"><label>Fecha nacimiento</label><input type="date" id="wFechaNac" value="${wizardData.profesor.fecha_nacimiento || ''}"></div></div>
+                <div class="form-row"><div class="form-group"><label>Sexo</label><select id="wSexo"><option value="">Seleccione</option><option value="M" ${wizardData.profesor.sexo === 'M' ? 'selected' : ''}>Masculino</option><option value="F" ${wizardData.profesor.sexo === 'F' ? 'selected' : ''}>Femenino</option></select></div>
+                <div class="form-group"><label>Teléfono</label><input type="text" id="wTelefono" value="${wizardData.profesor.telefono || ''}"></div></div>
+                <div class="form-group"><label>Dirección (calle)</label><textarea id="wDireccion">${wizardData.profesor.direccion || ''}</textarea></div>
+                <div class="form-row"><div class="form-group"><label>Provincia</label><input type="text" id="wProvincia" value="${wizardData.profesor.provincia || ''}"></div>
+                <div class="form-group"><label>Municipio</label><input type="text" id="wMunicipio" value="${wizardData.profesor.municipio || ''}"></div></div>
+                <div class="form-row"><div class="form-group"><label>Email</label><input type="email" id="wEmail" value="${wizardData.profesor.email || ''}"></div>
+                <div class="form-group"><label>Especialidad</label><input type="text" id="wEspecialidad" value="${wizardData.profesor.especialidad || ''}"></div></div>
+                <div class="form-row"><div class="form-group"><label>Categoría Docente</label><input type="text" id="wCategoria" value="${wizardData.profesor.categoria_docente || ''}"></div>
+                <div class="form-group"><label>Grado Científico</label><input type="text" id="wGrado" value="${wizardData.profesor.grado_cientifico || ''}"></div></div>
+                <div class="form-row"><div class="form-group"><label>Graduado de carrera</label><input type="text" id="wGraduado" value="${wizardData.profesor.graduado_carrera || ''}"></div>
+                <div class="form-group"><label>Fuente de procedencia</label>
+                    <div class="fuente-linea">
+                        <label><strong>Centro de trabajo principal:</strong></label>
+                        <input type="text" id="wCentroTexto" style="width: 300px;" placeholder="Escriba el centro" value="${wizardData.profesor.fuente_procedencia && wizardData.profesor.fuente_procedencia.startsWith('Centro de trabajo principal:') ? wizardData.profesor.fuente_procedencia.replace('Centro de trabajo principal:', '').trim() : ''}">
+                    </div>
+                    <div class="radio-group">
+                        <label><input type="radio" name="fuenteRadio" value="Interrupto" ${wizardData.profesor.fuente_procedencia === 'Interrupto' ? 'checked' : ''}> Interrupto</label>
+                        <label><input type="radio" name="fuenteRadio" value="Reserva laboral" ${wizardData.profesor.fuente_procedencia === 'Reserva laboral' ? 'checked' : ''}> Reserva laboral</label>
+                        <label><input type="radio" name="fuenteRadio" value="Jubilado" ${wizardData.profesor.fuente_procedencia === 'Jubilado' ? 'checked' : ''}> Jubilado</label>
+                        <label><input type="radio" name="fuenteRadio" value="Cuenta propia" ${wizardData.profesor.fuente_procedencia === 'Cuenta propia' ? 'checked' : ''}> Cuenta propia</label>
+                        <label><input type="radio" name="fuenteRadio" value="Ama de casa" ${wizardData.profesor.fuente_procedencia === 'Ama de casa' ? 'checked' : ''}> Ama de casa</label>
+                        <label><input type="radio" name="fuenteRadio" value="" ${!wizardData.profesor.fuente_procedencia || (!wizardData.profesor.fuente_procedencia.startsWith('Centro de trabajo principal:') && !['Interrupto','Reserva laboral','Jubilado','Cuenta propia','Ama de casa'].includes(wizardData.profesor.fuente_procedencia)) ? 'checked' : ''}> Ninguna</label>
+                    </div>
+                </div></div>
+                <div class="form-group"><label>Departamento del profesor *</label>
+                    <select id="wDepartamento">${departamentos.map(d => `<option value="${d.id_departamento}" ${wizardData.profesor.id_departamento == d.id_departamento ? 'selected' : ''}>${d.nombre}</option>`).join('')}</select>
+                </div>
+            `;
+            // Evento para autocompletar campos al seleccionar un profesor existente
+            document.getElementById('selectProfesorExistente').addEventListener('change', async (e) => {
+                const id = e.target.value;
+                if (id) {
+                    const profesor = profesoresList.find(p => p.id_profesor == id);
+                    if (profesor) {
+                        document.getElementById('wNombre').value = profesor.nombre || '';
+                        document.getElementById('wApellidos').value = profesor.apellidos || '';
+                        document.getElementById('wCarnet').value = profesor.carnet_identidad || '';
+                        document.getElementById('wFechaNac').value = profesor.fecha_nacimiento || '';
+                        document.getElementById('wSexo').value = profesor.sexo || '';
+                        document.getElementById('wTelefono').value = profesor.telefono || '';
+                        document.getElementById('wDireccion').value = profesor.direccion || '';
+                        document.getElementById('wProvincia').value = profesor.provincia || '';
+                        document.getElementById('wMunicipio').value = profesor.municipio || '';
+                        document.getElementById('wEmail').value = profesor.email || '';
+                        document.getElementById('wEspecialidad').value = profesor.especialidad || '';
+                        document.getElementById('wCategoria').value = profesor.categoria_docente || '';
+                        document.getElementById('wGrado').value = profesor.grado_cientifico || '';
+                        document.getElementById('wGraduado').value = profesor.graduado_carrera || '';
+                        // Fuente de procedencia
+                        if (profesor.fuente_procedencia && profesor.fuente_procedencia.startsWith('Centro de trabajo principal:')) {
+                            const centro = profesor.fuente_procedencia.replace('Centro de trabajo principal:', '').trim();
+                            document.getElementById('wCentroTexto').value = centro;
+                            document.getElementById('radioCentro').checked = true;
+                        } else {
+                            const radio = document.querySelector(`input[name="fuenteRadio"][value="${profesor.fuente_procedencia || ''}"]`);
+                            if (radio) radio.checked = true;
+                            document.getElementById('wCentroTexto').value = '';
+                        }
+                        document.getElementById('wDepartamento').value = profesor.id_departamento || '';
+                        // Guardar el id en wizardData para usarlo en el paso 2
+                        wizardData.profesor.id = profesor.id_profesor;
+                        // Opcional: también podríamos marcar que no se cree nuevo profesor
+                    }
+                }
+            });
+        } else if (currentStep === 2) {
+            stepContent.innerHTML = `
+                <h3>Datos de la Solicitud de Contratación</h3>
+                <div class="form-row"><div class="form-group"><label>Asignatura *</label><input type="text" id="wAsignatura" value="${wizardData.solicitud.asignatura || ''}"></div>
+                <div class="form-group"><label>Carrera</label><input type="text" id="wCarrera" value="${wizardData.solicitud.carrera || ''}"></div></div>
+                <div class="form-row"><div class="form-group"><label>Horas semanales *</label><input type="number" id="wHoras" value="${wizardData.solicitud.horas_semanales || ''}"></div>
+                <div class="form-group"><label>Centro de trabajo *</label><input type="text" id="wCentro" value="${wizardData.solicitud.centro_trabajo || ''}"></div></div>
+                <div class="form-row"><div class="form-group"><label>Facultad</label><input type="text" id="wFacultad" value="${wizardData.solicitud.facultad || ''}"></div>
+                <div class="form-group"><label>Estado</label><select id="wEstado"><option value="pendiente" ${wizardData.solicitud.estado === 'pendiente' ? 'selected' : ''}>Pendiente</option><option value="aprobada" ${wizardData.solicitud.estado === 'aprobada' ? 'selected' : ''}>Aprobada</option><option value="rechazada" ${wizardData.solicitud.estado === 'rechazada' ? 'selected' : ''}>Rechazada</option></select></div></div>
+                <div class="form-row"><div class="form-group"><label>Fecha solicitud</label><input type="date" id="wFechaSol" value="${wizardData.solicitud.fecha_solicitud || ''}"></div>
+                <div class="form-group"><label>ID Profesor (opcional - si ya existe)</label><input type="number" id="wIdProfesor" value="${wizardData.solicitud.id_profesor || (wizardData.profesor.id || '')}" placeholder="Si ya existe, ponga su ID"></div></div>
+                <div class="form-group"><label>Departamento solicitante *</label>
+                    <select id="wSolicitudDepartamento">${departamentos.map(d => `<option value="${d.id_departamento}" ${wizardData.solicitud.id_departamento == d.id_departamento ? 'selected' : ''}>${d.nombre}</option>`).join('')}</select>
+                </div>
+            `;
+        } else if (currentStep === 3) {
+            stepContent.innerHTML = `
+                <h3>Datos del Contrato</h3>
+                <div class="form-row"><div class="form-group"><label>Fecha inicio</label><input type="date" id="wFechaInicio" value="${wizardData.contrato.fecha_inicio || ''}"></div>
+                <div class="form-group"><label>Fecha fin</label><input type="date" id="wFechaFin" value="${wizardData.contrato.fecha_fin || ''}"></div></div>
+                <div class="form-row"><div class="form-group"><label>Salario *</label><input type="number" step="0.01" id="wSalario" value="${wizardData.contrato.salario || ''}"></div>
+                <div class="form-group"><label>Tipo de contrato</label><input type="text" id="wTipoContrato" value="${wizardData.contrato.tipo_contrato || 'Tiempo determinado'}"></div></div>
+            `;
+        } else if (currentStep === 4) {
+            stepContent.innerHTML = `
+                <h3>Resumen de la Contratación</h3>
+                <div class="resumen-item"><strong>Profesor:</strong> ${wizardData.profesor.nombre || '?'} ${wizardData.profesor.apellidos || ''}<br>
+                CI: ${wizardData.profesor.carnet_identidad || 'N/A'}, Categoría: ${wizardData.profesor.categoria_docente || 'N/A'}<br>
+                Dirección: ${wizardData.profesor.direccion || ''}, ${wizardData.profesor.municipio || ''}, ${wizardData.profesor.provincia || ''}<br>
+                Fuente: ${wizardData.profesor.fuente_procedencia || 'N/A'}</div>
+                <div class="resumen-item"><strong>Solicitud:</strong> Asignatura: ${wizardData.solicitud.asignatura || '?'}, Horas: ${wizardData.solicitud.horas_semanales || '?'}, Centro: ${wizardData.solicitud.centro_trabajo || '?'}<br>
+                Departamento solicitante: ${wizardData.solicitud.id_departamento || '?'}</div>
+                <div class="resumen-item"><strong>Contrato:</strong> Salario: $${wizardData.contrato.salario || '?'}, Tipo: ${wizardData.contrato.tipo_contrato || 'N/A'}, Fechas: ${wizardData.contrato.fecha_inicio || 'N/A'} a ${wizardData.contrato.fecha_fin || 'N/A'}</div>
+                <p>Revise los datos y confirme para crear profesor, solicitud y contrato en el sistema.</p>
+            `;
+        }
+
+        document.getElementById('wizardNext')?.addEventListener('click', () => { if (validateStep()) { saveCurrentStepData(); currentStep++; renderWizardStep(); } });
+        document.getElementById('wizardPrev')?.addEventListener('click', () => { saveCurrentStepData(); currentStep--; renderWizardStep(); });
+        document.getElementById('wizardSubmit')?.addEventListener('click', async () => {
+            saveCurrentStepData();
+            if (!validateStep()) return;
+            try {
+                let idProfesor = wizardData.solicitud.id_profesor;
+                if (!idProfesor) {
+                    const profesorPayload = { ...wizardData.profesor, id_departamento: parseInt(wizardData.profesor.id_departamento) };
+                    const profesorRes = await fetchAPI('/profesores', 'POST', profesorPayload);
+                    idProfesor = profesorRes.insertId || (await fetchAPI('/profesores')).slice(-1)[0].id_profesor;
+                }
+                const solicitudPayload = {
+                    ...wizardData.solicitud,
+                    id_profesor: idProfesor,
+                    id_departamento: parseInt(wizardData.solicitud.id_departamento),
+                    id_usuario: 2,
+                    horas_semanales: parseInt(wizardData.solicitud.horas_semanales),
+                    fecha_solicitud: wizardData.solicitud.fecha_solicitud || null
+                };
+                const solicitudRes = await fetchAPI('/solicitudes', 'POST', solicitudPayload);
+                const idSolicitud = solicitudRes.insertId || (await fetchAPI('/solicitudes')).slice(-1)[0].id_solicitud;
+                const contratoPayload = {
+                    fecha_inicio: wizardData.contrato.fecha_inicio,
+                    fecha_fin: wizardData.contrato.fecha_fin,
+                    salario: parseFloat(wizardData.contrato.salario),
+                    tipo_contrato: wizardData.contrato.tipo_contrato,
+                    id_solicitud: idSolicitud
+                };
+                await fetchAPI('/contratos', 'POST', contratoPayload);
+                alert('¡Contratación completada con éxito!');
+                await loadInitialData();
+                renderView('solicitudes');
+            } catch (err) { alert('Error: ' + err.message); }
+        });
+    }
+    function validateStep() {
+        if (currentStep === 1) {
+            const nombre = document.getElementById('wNombre')?.value;
+            const apellidos = document.getElementById('wApellidos')?.value;
+            const depto = document.getElementById('wDepartamento')?.value;
+            if (!nombre || !apellidos || !depto) { alert('Nombre, apellidos y departamento del profesor son obligatorios'); return false; }
+            const carnet = document.getElementById('wCarnet')?.value?.trim();
+            if (carnet !== "") {
+                const existe = profesoresList.some(p => p.carnet_identidad === carnet && p.id_profesor != wizardData.profesor.id);
+                if (existe) { alert(`El carnet "${carnet}" ya está registrado. Usa otro carnet o selecciona el profesor existente.`); return false; }
+            }
+        } else if (currentStep === 2) {
+            const asignatura = document.getElementById('wAsignatura')?.value;
+            const horas = document.getElementById('wHoras')?.value;
+            const centro = document.getElementById('wCentro')?.value;
+            const deptoSol = document.getElementById('wSolicitudDepartamento')?.value;
+            if (!asignatura || !horas || !centro || !deptoSol) { alert('Asignatura, horas, centro de trabajo y departamento solicitante son obligatorios'); return false; }
+        } else if (currentStep === 3) {
+            const salario = document.getElementById('wSalario')?.value;
+            if (!salario || isNaN(parseFloat(salario))) { alert('El salario es obligatorio'); return false; }
+        }
+        return true;
+    }
+    function saveCurrentStepData() {
+        if (currentStep === 1) {
+            const emptyToNull = (val) => (val === "" ? null : val);
+            let fuente = null;
+            const centroTexto = document.getElementById('wCentroTexto')?.value.trim();
+            if (centroTexto) fuente = `Centro de trabajo principal: ${centroTexto}`;
+            else {
+                const radio = document.querySelector('input[name="fuenteRadio"]:checked');
+                if (radio && radio.value) fuente = radio.value;
+            }
+            wizardData.profesor = {
+                nombre: document.getElementById('wNombre')?.value,
+                apellidos: document.getElementById('wApellidos')?.value,
+                carnet_identidad: emptyToNull(document.getElementById('wCarnet')?.value),
+                fecha_nacimiento: emptyToNull(document.getElementById('wFechaNac')?.value),
+                sexo: emptyToNull(document.getElementById('wSexo')?.value),
+                telefono: emptyToNull(document.getElementById('wTelefono')?.value),
+                direccion: emptyToNull(document.getElementById('wDireccion')?.value),
+                provincia: emptyToNull(document.getElementById('wProvincia')?.value),
+                municipio: emptyToNull(document.getElementById('wMunicipio')?.value),
+                email: emptyToNull(document.getElementById('wEmail')?.value),
+                especialidad: emptyToNull(document.getElementById('wEspecialidad')?.value),
+                categoria_docente: emptyToNull(document.getElementById('wCategoria')?.value),
+                grado_cientifico: emptyToNull(document.getElementById('wGrado')?.value),
+                graduado_carrera: emptyToNull(document.getElementById('wGraduado')?.value),
+                fuente_procedencia: fuente,
+                id_departamento: document.getElementById('wDepartamento')?.value,
+                id: wizardData.profesor.id || null
+            };
+        } else if (currentStep === 2) {
+            wizardData.solicitud = {
+                asignatura: document.getElementById('wAsignatura')?.value,
+                carrera: document.getElementById('wCarrera')?.value || null,
+                horas_semanales: document.getElementById('wHoras')?.value,
+                centro_trabajo: document.getElementById('wCentro')?.value,
+                facultad: document.getElementById('wFacultad')?.value || null,
+                estado: document.getElementById('wEstado')?.value,
+                fecha_solicitud: document.getElementById('wFechaSol')?.value || null,
+                id_profesor: document.getElementById('wIdProfesor')?.value || null,
+                id_departamento: document.getElementById('wSolicitudDepartamento')?.value
+            };
+        } else if (currentStep === 3) {
+            wizardData.contrato = {
+                fecha_inicio: document.getElementById('wFechaInicio')?.value || null,
+                fecha_fin: document.getElementById('wFechaFin')?.value || null,
+                salario: document.getElementById('wSalario')?.value,
+                tipo_contrato: document.getElementById('wTipoContrato')?.value || null
+            };
+        }
+    }
+
+    // ========== RENDER DE VISTAS ==========
+    async function renderView(view) {
+        currentView = view;
+        if (view === 'dashboard') {
+            const main = document.getElementById('mainContent');
+            main.innerHTML = `<div class="card"><h2>📌 Panel Principal</h2><p>Bienvenido al sistema de gestión de contratación.</p><hr><h3>Estadísticas</h3><ul><li>👨‍🏫 Profesores: ${profesoresList.length}</li><li>📄 Solicitudes: ${solicitudesList.length}</li><li>📑 Contratos: ${contratosList.length}</li><li>🏢 Departamentos: ${departamentos.length}</li></ul></div>`;
+        } else if (view === 'profesores') { await loadProfesores(); await renderProfesoresView(); }
+        else if (view === 'solicitudes') { await loadSolicitudes(); await renderSolicitudesView(); }
+        else if (view === 'contratos') { await loadContratos(); await renderContratosView(); }
+        else if (view === 'admin') { await renderAdminMainView(); }
+    }
+
+    async function renderApp() {
+        const appDiv = document.getElementById('app');
+        if (!token) {
+            appDiv.innerHTML = `
+                <div class="login-container">
+                    <div class="login-card">
+                        <h2>🔐 Iniciar Sesión</h2>
+                        <form id="loginForm">
+                            <input type="email" id="email" placeholder="Correo electrónico" required>
+                            <input type="password" id="password" placeholder="Contraseña" required>
+                            <button type="submit" style="width:100%">Ingresar</button>
+                        </form>
+                        <p style="text-align:center; margin-top:15px;">Usuario de prueba: admin@umcc.cu / adminis</p>
+                    </div>
+                </div>
+            `;
+            document.getElementById('loginForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                try {
+                    await login(email, password);
+                } catch (err) {
+                    alert(err.message);
+                }
+            });
+            return;
+        }
+        await loadInitialData();
+        appDiv.innerHTML = `
+            <div class="app-layout">
+                <div class="sidebar">
+                    <div class="sidebar-header">
+                        <h2>🏛️ Sistema de Contratación</h2>
+                        <p>Gestión Docente</p>
+                    </div>
+                    <div class="nav-item" data-view="dashboard">📊 Panel Principal</div>
+                    <div class="nav-item" data-view="profesores">👨‍🏫 Profesores</div>
+                    <div class="nav-item" data-view="solicitudes">📄 Solicitudes</div>
+                    <div class="nav-item" data-view="contratos">📑 Contratos</div>
+                    <div class="sidebar-divider"></div>
+                    <div class="nav-item" data-view="admin">⚙️ Administración</div>
+                    <button class="logout-btn" id="logoutBtn">🚪 Cerrar sesión</button>
+                </div>
+                <div class="main-content" id="mainContent">
+                    <div class="card"><h2>Bienvenido</h2><p>Seleccione una opción del menú lateral.</p></div>
+                </div>
+            </div>
+        `;
+        document.getElementById('logoutBtn').addEventListener('click', logout);
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                item.classList.add('active');
+                renderView(item.getAttribute('data-view'));
+            });
+        });
+        document.querySelector('.nav-item[data-view="dashboard"]').classList.add('active');
+        renderView('dashboard');
+    }
+
+    renderApp();
+</script>
+</body>
+</html>
