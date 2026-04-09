@@ -1,0 +1,115 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  JEFE
+  RECTOR
+  RH
+}
+
+enum Estado {
+  DRAFT
+  SUBMITTED
+  SIGNED
+  GENERATED
+  COMPLETED
+}
+
+model Profile {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  password    String   // Store hashed password here
+  full_name   String
+  role        Role     @default(JEFE)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  solicitudes Solicitud[]
+  documentos  Documento[]
+  historiales Historial[]
+}
+
+model Solicitud {
+  id                   String   @id @default(uuid())
+  created_by           String
+  estado               Estado   @default(DRAFT)
+  
+  nombres_apellidos    String
+  ci                   String
+  direccion            String
+  jubilado             Boolean  @default(false)
+  categoria_docente    String?
+  grado_cientifico     String?
+  carrera_graduacion   String?
+  
+  asignaturas          String?
+  carreras             String?
+  departamento         String?
+  facultad             String?
+  disponibilidad_plazas Int     @default(0)
+  tipo_perfil          String?
+  
+  centro_trabajo       String?
+  organismo            String?
+  cargo                String?
+  
+  fecha_inicio         DateTime?
+  fecha_fin            DateTime?
+  
+  docencia_pregrado_presencial Int @default(0)
+  docencia_semipresencial      Int @default(0)
+  docencia_postgrado           Int @default(0)
+  practica_laboral             Int @default(0)
+  trabajo_investigativo        Int @default(0)
+  tutoria                      Int @default(0)
+  consultas                    Int @default(0)
+  preparacion_metodologica     Int @default(0)
+  trabajo_cientifico           Int @default(0)
+  
+  fundamentacion       String?
+  
+  salario_mensual      Float?
+  facultad_filial      String?
+  cargo_rh_firmante    String?
+  nombre_rh            String?
+  
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  profile              Profile  @relation(fields: [created_by], references: [id])
+  documentos           Documento[]
+  historial            Historial[]
+}
+
+model Documento {
+  id           String   @id @default(uuid())
+  solicitud_id String
+  tipo         String
+  storage_path String
+  nombre       String
+  es_firmado   Boolean  @default(false)
+  uploaded_by  String
+  created_at   DateTime @default(now())
+
+  solicitud    Solicitud @relation(fields: [solicitud_id], references: [id])
+  uploader     Profile   @relation(fields: [uploaded_by], references: [id])
+}
+
+model Historial {
+  id             String   @id @default(uuid())
+  solicitud_id   String
+  usuario_id     String
+  usuario_nombre String
+  accion         String
+  descripcion    String
+  created_at     DateTime @default(now())
+
+  solicitud      Solicitud @relation(fields: [solicitud_id], references: [id])
+  usuario        Profile   @relation(fields: [usuario_id], references: [id])
+}
