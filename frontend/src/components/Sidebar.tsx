@@ -14,7 +14,7 @@ const NAV: NavItem[] = [
   { icon: <FileText size={18} />, label: 'Solicitudes', path: '/solicitudes' },
   { icon: <PlusCircle size={18} />, label: 'Nueva Solicitud', path: '/solicitudes/nueva', roles: ['JEFE'] },
   { icon: <Pen size={18} />, label: 'Por Firmar', path: '/rector/firmar', roles: ['RECTOR'] },
-  { icon: <Settings size={18} />, label: 'Generar Contratos', path: '/rh/contratos', roles: ['RH'] },
+  { icon: <Settings size={18} />, label: 'Generar Contratos', path: '/rh/contratos', roles: ['RRHH'] },
   { icon: <User size={18} />, label: 'Perfil', path: '/perfil' },
 ];
 
@@ -67,7 +67,7 @@ export default function Sidebar() {
             <div className="min-w-0">
               <p className="text-white text-xs font-medium truncate">{profile.full_name}</p>
               <p className="text-slate-400 text-xs">
-                {profile.role === 'JEFE' ? 'Jefe de Área' : profile.role === 'RECTOR' ? 'Rector' : 'Recursos Humanos'}
+                {profile.role === 'JEFE' ? 'Jefe de Área' : profile.role === 'RECTOR' ? 'Rector' : profile.role === 'RRHH' ? 'Recursos Humanos' : profile.role}
               </p>
             </div>
           </div>

@@ -1,13 +1,19 @@
-export type Role = 'JEFE' | 'RECTOR' | 'RH';
+export type Role = 'JEFE' | 'RECTOR' | 'RRHH';
 export type Estado = 'DRAFT' | 'SUBMITTED' | 'SIGNED' | 'GENERATED' | 'COMPLETED';
 
+/**
+ * Represents a User as returned by the backend (Prisma User + Role include).
+ * `full_name` and `role` (string) are computed by the API adapter layer
+ * from the raw backend fields `name` and `role.name`.
+ */
 export interface Profile {
-  id: string;
+  id: number;
   email: string;
+  name: string | null;
+  /** Computed alias kept for backward-compat with existing pages */
   full_name: string;
   role: Role;
-  created_at: string;
-  updated_at: string;
+  role_id: number;
 }
 
 export interface Solicitud {

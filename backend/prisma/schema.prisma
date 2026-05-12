@@ -1,115 +1,182 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
-enum Role {
-  JEFE
-  RECTOR
-  RH
-}
-
-enum Estado {
-  DRAFT
-  SUBMITTED
-  SIGNED
-  GENERATED
+// Enum para el estado de la solicitud
+enum RequestStatusEnum {
+  PENDING
+  IN_REVIEW
+  APPROVED
+  REJECTED
   COMPLETED
+  CANCELLED
 }
 
-model Profile {
-  id          String   @id @default(uuid())
-  email       String   @unique
-  password    String   // Store hashed password here
-  full_name   String
-  role        Role     @default(JEFE)
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
-
-  solicitudes Solicitud[]
-  documentos  Documento[]
-  historiales Historial[]
+// Enum para el estado del documento
+enum DocumentStatusEnum {
+  PENDING
+  UPLOADED
+  VERIFIED
+  REJECTED
+  EXPIRED
 }
 
-model Solicitud {
-  id                   String   @id @default(uuid())
-  created_by           String
-  estado               Estado   @default(DRAFT)
-  
-  nombres_apellidos    String
-  ci                   String
-  direccion            String
-  jubilado             Boolean  @default(false)
-  categoria_docente    String?
-  grado_cientifico     String?
-  carrera_graduacion   String?
-  
-  asignaturas          String?
-  carreras             String?
-  departamento         String?
-  facultad             String?
-  disponibilidad_plazas Int     @default(0)
-  tipo_perfil          String?
-  
-  centro_trabajo       String?
-  organismo            String?
-  cargo                String?
-  
-  fecha_inicio         DateTime?
-  fecha_fin            DateTime?
-  
-  docencia_pregrado_presencial Int @default(0)
-  docencia_semipresencial      Int @default(0)
-  docencia_postgrado           Int @default(0)
-  practica_laboral             Int @default(0)
-  trabajo_investigativo        Int @default(0)
-  tutoria                      Int @default(0)
-  consultas                    Int @default(0)
-  preparacion_metodologica     Int @default(0)
-  trabajo_cientifico           Int @default(0)
-  
-  fundamentacion       String?
-  
-  salario_mensual      Float?
-  facultad_filial      String?
-  cargo_rh_firmante    String?
-  nombre_rh            String?
-  
-  created_at           DateTime @default(now())
-  updated_at           DateTime @updatedAt
-
-  profile              Profile  @relation(fields: [created_by], references: [id])
-  documentos           Documento[]
-  historial            Historial[]
+// Enum para el estado del contrato
+enum ContractStatusEnum {
+  DRAFT
+  GENERATED
+  SIGNED
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  EXPIRED
+  CANCELLED
 }
 
-model Documento {
-  id           String   @id @default(uuid())
-  solicitud_id String
-  tipo         String
-  storage_path String
-  nombre       String
-  es_firmado   Boolean  @default(false)
-  uploaded_by  String
-  created_at   DateTime @default(now())
+model Role {
+  id   Int    @id @default(autoincrement())
+  name String
 
-  solicitud    Solicitud @relation(fields: [solicitud_id], references: [id])
-  uploader     Profile   @relation(fields: [uploaded_by], references: [id])
+  users User[]
 }
 
-model Historial {
-  id             String   @id @default(uuid())
-  solicitud_id   String
-  usuario_id     String
-  usuario_nombre String
-  accion         String
-  descripcion    String
-  created_at     DateTime @default(now())
+model User {
+  id       Int     @id @default(autoincrement())
+  name     String?
+  email    String  @unique
+  password String?
+  role_id  Int
 
-  solicitud      Solicitud @relation(fields: [solicitud_id], references: [id])
-  usuario        Profile   @relation(fields: [usuario_id], references: [id])
+  role            Role           @relation(fields: [role_id], references: [id])
+  histories       History[]
+  notifications   Notification[]
+  createdRequests Request[]      @relation("RequestCreator")
+}
+
+model Faculty {
+  id   Int    @id @default(autoincrement())
+  name String
+
+  departments Department[]
+}
+
+model Department {
+  id         Int    @id @default(autoincrement())
+  name       String
+  faculty_id Int
+
+  faculty  Faculty   @relation(fields: [faculty_id], references: [id])
+  requests Request[]
+}
+
+model WorkCenter {
+  id       Int     @id @default(autoincrement())
+  name     String
+  organism String?
+  position String?
+
+  professors Professor[]
+}
+
+model Professor {
+  id                   Int     @id @default(autoincrement())
+  name                 String
+  ci                   String?
+  address              String?
+  phone                String?
+  is_retired           Boolean
+  work_center_id       Int
+  scientific_degree_id Int?
+  teaching_category_id Int
+
+  work_center       WorkCenter        @relation(fields: [work_center_id], references: [id])
+  scientific_degree ScientificDegree? @relation(fields: [scientific_degree_id], references: [id])
+  teaching_category TeachingCategory  @relation(fields: [teaching_category_id], references: [id])
+  requests          Request[]
+}
+
+model ScientificDegree {
+  id         Int         @id @default(autoincrement())
+  name       String
+  professors Professor[]
+}
+
+model TeachingCategory {
+  id         Int         @id @default(autoincrement())
+  name       String
+  professors Professor[]
+}
+
+// NOTA: Esta tabla se puede eliminar ahora porque usamos RequestStatusEnum directamente
+// Se mantiene por compatibilidad, pero puedes optar por no usarla
+model RequestStatus {
+  id   Int    @id @default(autoincrement())
+  name String
+
+  requests Request[]
+}
+
+model Request {
+  id            Int               @id @default(autoincrement())
+  professor_id  Int
+  department_id Int
+  created_by    Int
+  status        RequestStatusEnum @default(PENDING)
+  date          DateTime
+
+  professor  Professor  @relation(fields: [professor_id], references: [id])
+  department Department @relation(fields: [department_id], references: [id])
+  creator    User       @relation("RequestCreator", fields: [created_by], references: [id])
+
+  documents       Document[]
+  histories       History[]
+  contract        Contract?
+  requestStatus   RequestStatus? @relation(fields: [requestStatusId], references: [id])
+  requestStatusId Int?
+}
+
+model Document {
+  id         Int                @id @default(autoincrement())
+  request_id Int
+  type       String
+  file_path  String?
+  status     DocumentStatusEnum @default(PENDING)
+
+  request Request @relation(fields: [request_id], references: [id])
+}
+
+model History {
+  id         Int      @id @default(autoincrement())
+  request_id Int
+  user_id    Int
+  action     String
+  date       DateTime
+
+  request Request @relation(fields: [request_id], references: [id])
+  user    User    @relation(fields: [user_id], references: [id])
+}
+
+model Contract {
+  id              Int                @id @default(autoincrement())
+  request_id      Int                @unique
+  generation_date DateTime
+  document_path   String?
+  status          ContractStatusEnum @default(DRAFT)
+
+  request Request @relation(fields: [request_id], references: [id])
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  user_id   Int
+  message   String
+  read      Boolean  @default(false)
+  sent_date DateTime
+
+  user User @relation(fields: [user_id], references: [id])
 }

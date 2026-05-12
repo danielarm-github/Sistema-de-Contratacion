@@ -1,21 +1,26 @@
-import { Router, Request, Response } from 'express';
-import bcrypt from 'bcryptjs';
-import jwt from 'jwt-simple';
-import prisma from '../lib/prisma';
+import { Router, Request, Response } from "express";
+import bcrypt from "bcryptjs";
+import jwt from "jwt-simple";
+import prisma from "../lib/prisma";
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'supersafesecret23489y23';
+const JWT_SECRET = process.env.JWT_SECRET || "supersafesecret23489y23";
 
 // POST /api/auth/login
-router.post('/login', async (req: Request, res: Response) => {
+router.post("/login", async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
-    const user = await prisma.profile.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: { role: true },
+    });
 
-    if (!user) return res.status(401).json({ error: 'Credenciales inválidas' });
+    if (!user || !user.password)
+      return res.status(401).json({ error: "Credenciales inválidas" });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(401).json({ error: 'Credenciales inválidas' });
+    if (!isMatch)
+      return res.status(401).json({ error: "Credenciales inválidas" });
 
     const token = jwt.encode({ id: user.id }, JWT_SECRET);
     return res.json({ data: { user, session: { access_token: token } } });
@@ -25,16 +30,35 @@ router.post('/login', async (req: Request, res: Response) => {
 });
 
 // POST /api/auth/register
-router.post('/register', async (req: Request, res: Response) => {
+router.post("/register", async (req: Request, res: Response) => {
   try {
-    const { email, password, full_name, role } = req.body;
+    const { email, password, full_name, name, role_id } = req.body;
+    const userName = name || full_name;
 
-    const existing = await prisma.profile.findUnique({ where: { email } });
-    if (existing) return res.status(400).json({ error: 'El email ya está registrado' });
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing)
+      return res.status(400).json({ error: "El email ya está registrado" });
+
+    let assignedRoleId = role_id;
+    if (!assignedRoleId) {
+      const defaultRole = await prisma.role.findFirst({
+        where: { name: "JEFE" },
+      });
+      if (defaultRole) {
+        assignedRoleId = defaultRole.id;
+      } else {
+        return res
+          .status(400)
+          .json({
+            error: "Rol no proporcionado y rol JEFE por defecto no encontrado",
+          });
+      }
+    }
 
     const hash = await bcrypt.hash(password, 10);
-    const user = await prisma.profile.create({
-      data: { email, password: hash, full_name, role: role || 'JEFE' },
+    const user = await prisma.user.create({
+      data: { email, password: hash, name: userName, role_id: assignedRoleId },
+      include: { role: true },
     });
 
     const token = jwt.encode({ id: user.id }, JWT_SECRET);
@@ -45,21 +69,24 @@ router.post('/register', async (req: Request, res: Response) => {
 });
 
 // GET /api/auth/me
-router.get('/me', async (req: Request, res: Response) => {
+router.get("/me", async (req: Request, res: Response) => {
   const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ error: 'No autorizado' });
+  if (!authHeader) return res.status(401).json({ error: "No autorizado" });
 
-  const token = authHeader.split(' ')[1];
-  if (!token) return res.status(401).json({ error: 'No autorizado' });
+  const token = authHeader.split(" ")[1];
+  if (!token) return res.status(401).json({ error: "No autorizado" });
 
   try {
     const payload = jwt.decode(token, JWT_SECRET);
-    const user = await prisma.profile.findUnique({ where: { id: payload.id } });
-    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    const user = await prisma.user.findUnique({
+      where: { id: Number(payload.id) },
+      include: { role: true },
+    });
+    if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
 
-    return res.json({ data: { user, session: { access_token: token } } });
+    return res.json({ data: { user } });
   } catch {
-    return res.status(401).json({ error: 'Token inválido' });
+    return res.status(401).json({ error: "Token inválido" });
   }
 });
 

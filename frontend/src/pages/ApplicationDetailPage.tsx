@@ -252,7 +252,7 @@ export default function ApplicationDetailPage() {
           <RectorSignPanel solicitud={s} docs={docs} onDone={refreshAll} />
         )}
 
-        {profile?.role === 'RH' && (s.estado === 'SIGNED' || s.estado === 'GENERATED') && (
+        {profile?.role === 'RRHH' && (s.estado === 'SIGNED' || s.estado === 'GENERATED') && (
           <RHContractPanel solicitud={s} onDone={refreshAll} />
         )}
       </div>

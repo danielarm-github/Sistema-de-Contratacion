@@ -1,22 +1,12 @@
 import { useState, FormEvent } from 'react';
-import { FileText, Eye, EyeOff, User } from 'lucide-react';
+import { FileText, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
-type Mode = 'login' | 'register';
-
-const ROLES = [
-  { value: 'JEFE', label: 'Jefe de Área' },
-  { value: 'RECTOR', label: 'Rector' },
-  { value: 'RH', label: 'Recursos Humanos' },
-];
 
 export default function LoginPage() {
-  const { signIn, signUp } = useAuth();
-  const [mode, setMode] = useState<Mode>('login');
+  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [role, setRole] = useState('JEFE');
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -30,21 +20,10 @@ export default function LoginPage() {
     if (!email || !password) { setError('Completa todos los campos'); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError('Formato de email inválido'); return; }
     if (password.length < 6) { setError('La contraseña debe tener al menos 6 caracteres'); return; }
-    if (mode === 'register' && !fullName.trim()) { setError('El nombre es requerido'); return; }
 
     setLoading(true);
-    if (mode === 'login') {
-      const { error } = await signIn(email, password);
-      if (error) setError(error.message === 'Invalid login credentials' ? 'Credenciales incorrectas' : error.message);
-    } else {
-      const { error } = await signUp(email, password, fullName.trim(), role);
-      if (error) {
-        setError(error.message.includes('already registered') ? 'Este email ya está registrado' : error.message);
-      } else {
-        setSuccess('Cuenta creada. Inicia sesión.');
-        setMode('login');
-      }
-    }
+    const { error } = await signIn(email, password);
+    if (error) setError(error.message === 'Invalid login credentials' ? 'Credenciales incorrectas' : error.message);
     setLoading(false);
   };
 
@@ -65,19 +44,12 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <div className="flex rounded-xl bg-slate-100 p-1 mb-6">
-            <button
-              onClick={() => { setMode('login'); setError(''); setSuccess(''); }}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${mode === 'login' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+          <div className="flex justify-center items-center rounded-xl p-1 mb-6">
+            <h1
+              className='text-slate-800 font-medium text-xl'
             >
               Iniciar Sesión
-            </button>
-            <button
-              onClick={() => { setMode('register'); setError(''); setSuccess(''); }}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${mode === 'register' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-              Crear Cuenta
-            </button>
+            </h1>
           </div>
 
           {error && (
@@ -92,35 +64,6 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {mode === 'register' && (
-              <>
-                <div>
-                  <label className="block text-slate-700 text-sm font-medium mb-1.5">Nombre completo</label>
-                  <div className="relative">
-                    <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input
-                      type="text"
-                      value={fullName}
-                      onChange={e => setFullName(e.target.value)}
-                      placeholder="Ej. María García López"
-                      className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-slate-700 text-sm font-medium mb-1.5">Rol en el sistema</label>
-                  <select
-                    value={role}
-                    onChange={e => setRole(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
-                  >
-                    {ROLES.map(r => (
-                      <option key={r.value} value={r.value}>{r.label}</option>
-                    ))}
-                  </select>
-                </div>
-              </>
-            )}
 
             <div>
               <label className="block text-slate-700 text-sm font-medium mb-1.5">Correo electrónico</label>
@@ -161,10 +104,10 @@ export default function LoginPage() {
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  {mode === 'login' ? 'Ingresando...' : 'Creando cuenta...'}
+                  Ingresando...
                 </span>
               ) : (
-                mode === 'login' ? 'Ingresar al sistema' : 'Crear cuenta'
+                'Ingresar al sistema'
               )}
             </button>
           </form>

@@ -43,19 +43,13 @@ export default function DocumentUploader({ solicitudId, docs, existing, onUpload
       }
 
       // 3. Create document record
-      const newDocObj = {
+      const newDoc = await api.documentos.create({
         solicitud_id: solicitudId,
         tipo,
         storage_path: path,
         nombre: file.name,
         es_firmado: tipo.includes('firmado'),
         uploaded_by: user.id
-      };
-      
-      const newDoc = await api.query<Documento>({
-        table: 'documentos',
-        method: 'insert',
-        payload: newDocObj
       });
 
       onUploaded(newDoc);

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
-import { Solicitud, Historial } from '../types';
+import { Solicitud, Historial, Profile } from '../types';
 
 export const queryKeys = {
   solicitudes: ['solicitudes'] as const,
@@ -14,13 +14,9 @@ export const queryKeys = {
 export function useSolicitudes(opts?: { eq?: { col: string; val: unknown }; in?: { col: string; vals: unknown[] } }) {
   return useQuery({
     queryKey: [...queryKeys.solicitudes, opts],
-    queryFn: () => api.query<Solicitud[]>({
-      table: 'solicitudes',
-      method: 'select',
-      q_order: 'created_at',
-      q_order_asc: false,
-      q_eq: opts?.eq,
-      q_in: opts?.in,
+    queryFn: () => api.solicitudes.list({
+      estado: opts?.eq?.val as string,
+      estado_in: opts?.in?.vals as string[],
     }),
   });
 }
@@ -50,6 +46,15 @@ export function useUpdateSolicitud() {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.solicitudes });
       queryClient.invalidateQueries({ queryKey: queryKeys.solicitud(id) });
+    },
+  });
+}
+export function useDeleteSolicitud() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.solicitudes.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.solicitudes });
     },
   });
 }
@@ -99,15 +104,10 @@ export function useCreateHistorial() {
 export function useUpdateProfile() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { full_name: string } }) => 
-      api.query({
-        table: 'profiles',
-        method: 'update',
-        q_eq: { col: 'id', val: id },
-        payload: data
-      }),
+    mutationFn: ({ id, data }: { id: number; data: Partial<Profile> }) => 
+      api.profiles.update(id, data),
     onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.profile(id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.profile(String(id)) });
     },
   });
 }

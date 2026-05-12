@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Save, Send, CheckCircle, Loader } from 'lucide-react';
 import Layout from '../../components/Layout';
 import DocumentUploader from '../../components/DocumentUploader';
@@ -8,7 +8,7 @@ import { FormData, INITIAL_FORM } from './types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRouter } from '../../contexts/RouterContext';
 import { DocTipo, Documento, Solicitud, Estado } from '../../types';
-import { useCreateSolicitud, useUpdateSolicitud, useCreateHistorial } from '../../hooks/queries';
+import { useCreateSolicitud, useUpdateSolicitud, useCreateHistorial, useSolicitud, useDocumentos } from '../../hooks/queries';
 
 interface Section {
   id: string;
@@ -180,10 +180,14 @@ const DOC_CONFIGS = [
 
 export default function NewApplicationPage() {
   const { user, profile } = useAuth();
-  const { navigate } = useRouter();
+  const { navigate, params } = useRouter();
   const createSolicitud = useCreateSolicitud();
   const updateSolicitud = useUpdateSolicitud();
   const createHistorial = useCreateHistorial();
+
+  const editId = params.id;
+  const { data: existingSolicitud, isLoading: loadingSolicitud } = useSolicitud(editId);
+  const { data: existingDocs } = useDocumentos(editId);
 
   const [form, setForm] = useState<FormData>(INITIAL_FORM);
   const [openSection, setOpenSection] = useState<string>('s1');
@@ -192,6 +196,61 @@ export default function NewApplicationPage() {
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
+
+  // Sync state if editing
+  useEffect(() => {
+    if (editId) setSolicitudId(editId);
+  }, [editId]);
+
+  useEffect(() => {
+    if (existingSolicitud) {
+      const formatDateForInput = (dateStr: string | null) => {
+        if (!dateStr) return '';
+        return dateStr.split('T')[0];
+      };
+
+      setForm({
+        nombres_apellidos: existingSolicitud.nombres_apellidos || '',
+        ci: existingSolicitud.ci || '',
+        direccion: existingSolicitud.direccion || '',
+        jubilado: existingSolicitud.jubilado || false,
+        categoria_docente: existingSolicitud.categoria_docente || '',
+        grado_cientifico: existingSolicitud.grado_cientifico || '',
+        carrera_graduacion: existingSolicitud.carrera_graduacion || '',
+        asignaturas: existingSolicitud.asignaturas || '',
+        carreras: existingSolicitud.carreras || '',
+        departamento: existingSolicitud.departamento || '',
+        facultad: existingSolicitud.facultad || '',
+        disponibilidad_plazas: existingSolicitud.disponibilidad_plazas || 0,
+        tipo_perfil: existingSolicitud.tipo_perfil || '',
+        centro_trabajo: existingSolicitud.centro_trabajo || '',
+        organismo: existingSolicitud.organismo || '',
+        cargo: existingSolicitud.cargo || '',
+        fecha_inicio: formatDateForInput(existingSolicitud.fecha_inicio),
+        fecha_fin: formatDateForInput(existingSolicitud.fecha_fin),
+        docencia_pregrado_presencial: existingSolicitud.docencia_pregrado_presencial || 0,
+        docencia_semipresencial: existingSolicitud.docencia_semipresencial || 0,
+        docencia_postgrado: existingSolicitud.docencia_postgrado || 0,
+        practica_laboral: existingSolicitud.practica_laboral || 0,
+        trabajo_investigativo: existingSolicitud.trabajo_investigativo || 0,
+        tutoria: existingSolicitud.tutoria || 0,
+        consultas: existingSolicitud.consultas || 0,
+        preparacion_metodologica: existingSolicitud.preparacion_metodologica || 0,
+        trabajo_cientifico: existingSolicitud.trabajo_cientifico || 0,
+        fundamentacion: existingSolicitud.fundamentacion || '',
+      });
+    }
+  }, [existingSolicitud]);
+
+  useEffect(() => {
+    if (existingDocs) {
+      const docsMap: Record<DocTipo, Documento | undefined> = {} as any;
+      existingDocs.forEach(d => {
+        docsMap[d.tipo as DocTipo] = d;
+      });
+      setDocs(docsMap);
+    }
+  }, [existingDocs]);
 
   const update = useCallback((k: keyof FormData, v: unknown) => {
     setForm(prev => ({ ...prev, [k]: v }));
@@ -265,8 +324,22 @@ export default function NewApplicationPage() {
   const isSubmitting = updateSolicitud.isPending || createHistorial.isPending;
   const canSubmit = solicitudId && REQUIRED_DOCS.every(d => docs[d]);
 
+  if (editId && loadingSolicitud) {
+    return (
+      <Layout title="Cargando..." subtitle="Recuperando datos de la solicitud">
+        <div className="flex flex-col items-center justify-center py-24 gap-4">
+          <Loader size={32} className="animate-spin text-blue-600" />
+          <p className="text-slate-500 font-medium">Cargando borrador...</p>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
-    <Layout title="Nueva Solicitud" subtitle="Complete los datos del profesor adjunto">
+    <Layout 
+      title={editId ? "Editar Solicitud" : "Nueva Solicitud"} 
+      subtitle={editId ? "Modifique los datos guardados en el borrador" : "Complete los datos del profesor adjunto"}
+    >
       <div className="max-w-3xl mx-auto space-y-3">
         {error && (
           <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
@@ -275,7 +348,7 @@ export default function NewApplicationPage() {
         )}
 
         {SECTIONS.map(section => (
-          <div key={section.id} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div key={section.id} className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
             <button
               type="button"
               onClick={() => setOpenSection(open => open === section.id ? '' : section.id)}
@@ -297,7 +370,7 @@ export default function NewApplicationPage() {
           </div>
         ))}
 
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
           <button
             type="button"
             onClick={() => setOpenSection(open => open === 's7' ? '' : 's7')}
@@ -340,18 +413,18 @@ export default function NewApplicationPage() {
         <div className="flex items-center justify-between pt-2 pb-6">
           <button
             onClick={() => navigate('/solicitudes')}
-            className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-white border border-slate-200 rounded-xl transition-colors"
+            className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-white border border-slate-200 rounded-xl transition-colors shadow-sm"
           >
-            Cancelar
+            {editId ? "Cerrar" : "Cancelar"}
           </button>
           <div className="flex gap-3">
             <button
               onClick={saveDraft}
               disabled={isSaving}
-              className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-50 shadow-sm"
             >
               {isSaving ? <Loader size={15} className="animate-spin" /> : <Save size={15} />}
-              {isSaving ? 'Guardando...' : saved ? 'Guardado' : 'Guardar borrador'}
+              {isSaving ? 'Guardando...' : saved ? 'Guardado' : 'Guardar cambios'}
             </button>
             <button
               onClick={() => { if (!canSubmit) { setError('Completa todos los campos y sube los documentos requeridos.'); return; } setShowSubmitModal(true); }}

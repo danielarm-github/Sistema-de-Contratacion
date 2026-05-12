@@ -7,7 +7,7 @@ import { useUpdateProfile } from '../hooks/queries';
 const ROLE_LABELS: Record<string, string> = {
   JEFE: 'Jefe de Área',
   RECTOR: 'Rector',
-  RH: 'Recursos Humanos',
+  RRHH: 'Recursos Humanos',
 };
 
 export default function ProfilePage() {
@@ -24,7 +24,7 @@ export default function ProfilePage() {
     try {
       await updateProfile.mutateAsync({
         id: user.id,
-        data: { full_name: name.trim() }
+        data: { name: name.trim() }
       });
       setSuccess('Perfil actualizado correctamente');
       await refreshProfile();

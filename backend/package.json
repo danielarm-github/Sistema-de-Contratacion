@@ -4,9 +4,17 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "ts-node-dev --respawn src/index.ts",
     "start": "tsx src/index.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "db:migrate": "prisma migrate dev --name init",
+    "db:push": "prisma db push",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio",
+    "db:seed": "tsx prisma/seed.ts"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "keywords": [],
   "author": "",
@@ -22,7 +30,10 @@
     "jsonwebtoken": "^9.0.3",
     "jwt-simple": "^0.5.6",
     "multer": "^2.1.1",
-    "pg": "^8.20.0"
+    "pdfkit": "^0.18.0",
+    "pg": "^8.20.0",
+    "socket.io": "^4.8.3",
+    "ts-node-dev": "^2.0.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -31,6 +42,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.1.0",
     "@types/node": "^25.5.2",
+    "@types/pdfkit": "^0.17.6",
     "prisma": "^5.21.1",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2"
